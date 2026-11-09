@@ -17,6 +17,8 @@ import (
 	"github.com/yyvfuruta/vim/internal/editor"
 )
 
+var version = "dev"
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "miv:", err)
@@ -27,7 +29,12 @@ func run() error {
 	flag.Usage = func() {
 		fmt.Fprintln(flag.CommandLine.Output(), "Usage: miv [file|directory ...]\nMinimal modal editor. Ctrl-p: files; :help: shortcuts; :q: quit.")
 	}
+	printVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
+	if *printVersion {
+		fmt.Println("miv " + version)
+		return nil
+	}
 	e, err := editor.New(flag.Args())
 	if err != nil {
 		return err

@@ -5,6 +5,17 @@ This is an independent implementation: it does not run or embed the C Vim
 source in `../../vim/vim`. The original code served as a reference for
 organization and behavior; this project does not aim for full compatibility.
 
+## Downloads
+
+Prebuilt binaries are published on the [GitHub Releases page](https://github.com/yyvfuruta/miv/releases).
+Archives include the executable and README; `checksums.txt` contains SHA-256
+checksums. Linux, macOS, and Windows builds target amd64 and arm64. Shell
+commands (`:!` and `:term`) currently require Linux.
+
+```sh
+./miv --version
+```
+
 ## Running
 
 Requires Go 1.23 or later and a terminal with UTF-8 support.
@@ -263,7 +274,7 @@ handling of the final line.
 ```sh
 make test
 make check
-make smoke  # Python 3 and a Unix pseudoterminal
+make smoke  # Go and a Linux pseudoterminal
 ```
 
 The core in `internal/editor` does not depend on the terminal. `cmd/miv`
@@ -273,3 +284,25 @@ syntax highlighting, workspaces, project discovery, and shell dispatch.
 The smoke test opens the binary in a PTY, edits UTF-8 text, pastes multiple
 lines, runs shell commands and an interactive shell, interrupts a command
 with Ctrl-C, saves, closes, and verifies that terminal settings are restored.
+
+## Releases
+
+Every completed change receives a release. Version numbers follow this policy:
+major for compatibility breaks, minor for features, and patch for fixes.
+Documentation/build-only maintenance uses a patch bump. The initial release
+is `v0.0.1`; the source version lives in `VERSION`.
+
+After updating `VERSION`, testing, and committing, create an annotated tag:
+
+```sh
+git tag -a "v$(cat VERSION)" -m "Release $(cat VERSION)"
+git push origin main --follow-tags
+```
+
+The tag triggers `.github/workflows/release.yml`, which tests the code and
+uses [GoReleaser](https://goreleaser.com/customization/ci/actions/) to publish
+archives, checksums, and release notes. The workflow verifies that the tag
+matches `VERSION`. GitHub Actions uses its built-in `GITHUB_TOKEN` with
+release-job `contents: write` permission; no additional release secret is
+required. CI also runs tests, static checks, builds, and a terminal smoke
+test for pushes to main and pull requests.
