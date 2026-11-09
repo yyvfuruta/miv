@@ -2,6 +2,7 @@ package editor
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -56,7 +57,22 @@ type Editor struct {
 
 func New(paths []string) (*Editor, error) {
 	e := &Editor{desiredCol: -1, Root: ".", Workspace: 1, workspaces: make(map[int]workspace)}
+	directory := ""
 	for _, p := range paths {
+		if info, err := os.Stat(p); err == nil && info.IsDir() {
+			if directory != "" {
+				return nil, fmt.Errorf("only one directory argument is supported")
+			}
+			abs, err := filepath.Abs(p)
+			if err != nil {
+				return nil, err
+			}
+			directory, err = filepath.EvalSymlinks(abs)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
 		b, err := Open(p)
 		if err != nil {
 			return nil, err
@@ -65,6 +81,13 @@ func New(paths []string) (*Editor, error) {
 	}
 	if len(e.Buffers) == 0 {
 		e.Buffers = []*Buffer{NewBuffer()}
+	}
+	if directory != "" {
+		e.Root = directory
+		e.StartPicker()
+		if e.Mode != Picker {
+			return nil, fmt.Errorf("open directory: %s", e.Message)
+		}
 	}
 	return e, nil
 }

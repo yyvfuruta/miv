@@ -12,11 +12,19 @@ Requires Go 1.23 or later and a terminal with UTF-8 support.
 ```sh
 make build
 ./bin/miv path/to/file
+# Open the file picker in a directory:
+./bin/miv .
+./bin/miv path/to/project
 # Open multiple files:
 ./bin/miv main.go README.md
 # Or run without creating a binary in bin/:
 go run ./cmd/miv path/to/file
 ```
+
+A directory argument opens the file picker in that directory and sets the
+workspace project directory. One directory argument is supported; file arguments
+can be supplied alongside it and are resolved from the launch directory.
+Existing files open as buffers; nonexistent file paths start new buffers.
 
 Without arguments, the editor starts with an empty buffer. Use `:w filename`
 to save. The compiled binary runs without Go installed. In this environment,

@@ -25,7 +25,7 @@ func main() {
 }
 func run() error {
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Usage: miv [file ...]\nMinimal modal editor. Ctrl-p: files; :help: shortcuts; :q: quit.")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: miv [file|directory ...]\nMinimal modal editor. Ctrl-p: files; :help: shortcuts; :q: quit.")
 	}
 	flag.Parse()
 	e, err := editor.New(flag.Args())
