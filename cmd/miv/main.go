@@ -103,11 +103,13 @@ type view struct {
 }
 
 var (
-	base     = tcell.StyleDefault.Foreground(tcell.NewHexColor(0xd8dee9)).Background(tcell.NewHexColor(0x20242c))
-	muted    = base.Foreground(tcell.NewHexColor(0x7e899b))
-	bar      = base.Background(tcell.NewHexColor(0x343b49))
-	accent   = bar.Foreground(tcell.NewHexColor(0xa3d9a5)).Bold(true)
-	selected = base.Background(tcell.NewHexColor(0x4c566a))
+	// Keep the editing area on the terminal palette (including its background).
+	base     = tcell.StyleDefault
+	muted    = base.Foreground(tcell.NewHexColor(0xbbbbbb))
+	bar      = base.Foreground(tcell.NewHexColor(0xffffff)).Background(tcell.NewHexColor(0x222222))
+	inactive = bar.Foreground(tcell.NewHexColor(0xbbbbbb))
+	accent   = bar.Foreground(tcell.NewHexColor(0xeeeeee)).Background(tcell.NewHexColor(0x333333))
+	selected = base.Foreground(tcell.NewHexColor(0xeeeeee)).Background(tcell.NewHexColor(0x333333))
 )
 
 // Printable substitutes keep control bytes in files from reaching the terminal.
@@ -186,22 +188,31 @@ func (v *view) draw() {
 	if displayCol >= v.left+contentW {
 		v.left = displayCol - contentW + 1
 	}
+	// Waybar layout: buffer tags on the left, file title centered, position on the right.
 	fill(s, 0, w, bar)
+	position := fmt.Sprintf(" %d:%d ", row+1, col+1)
+	right := max(0, w-runewidth.StringWidth(position))
 	x := 0
 	for i, buf := range e.Buffers {
-		name := filepath.Base(buf.Path)
-		if buf.Path == "" {
-			name = "[novo]"
-		}
+		label := fmt.Sprintf(" %d ", i+1)
 		if buf.Dirty() {
-			name += " +"
+			label = fmt.Sprintf(" %d+ ", i+1)
 		}
-		style := bar
+		style := inactive
 		if i == e.Active {
 			style = accent
 		}
-		x = put(s, x, 0, w, fmt.Sprintf(" %d %s ", i+1, name), style)
+		x = put(s, x, 0, right, label, style)
 	}
+	name := filepath.Base(b.Path)
+	if b.Path == "" {
+		name = "[novo]"
+	}
+	titleX := max(x+1, (w-runewidth.StringWidth(name))/2)
+	if titleX < right-1 {
+		put(s, titleX, 0, right-1, name, bar)
+	}
+	put(s, right, 0, w, position, bar)
 	start, end := -1, -1
 	if e.Mode == editor.Visual || e.Mode == editor.VisualLine {
 		start, end = min(e.Anchor, b.Cursor), max(e.Anchor, b.Cursor)+1
@@ -261,7 +272,7 @@ func (v *view) draw() {
 	}
 	if h >= 2 {
 		fill(s, h-2, w, bar)
-		put(s, 0, h-2, w, fmt.Sprintf(" %s  %d:%d  %s", e.Mode, row+1, col+1, b.Path), accent)
+		put(s, 0, h-2, w, fmt.Sprintf(" %s  %s", e.Mode, b.Path), bar)
 	}
 	bottom := e.Message
 	if e.Mode == editor.Command {

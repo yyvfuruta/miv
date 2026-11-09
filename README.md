@@ -23,6 +23,15 @@ O binário funciona sem Go instalado. Neste ambiente, o compilador foi
 baixado para `/tmp/go`: use `PATH=/tmp/go/bin:$PATH make build` enquanto
 ele não estiver no seu PATH.
 
+## Aparência
+
+A área de edição herda as cores padrão do terminal, acompanhando o tema e
+as configurações de fundo do foot. A fonte também é a do terminal.
+As barras seguem sua Waybar: fundo `#222222`, buffers inativos em `#bbbbbb`
+e buffer ativo com fundo `#333333` e texto `#eeeeee`, sem negrito.
+A barra superior mostra os buffers à esquerda, o arquivo ao centro e a
+posição à direita. A seleção usa o mesmo cinza do buffer ativo.
+
 ## Comandos
 
 `Esc` retorna ao modo normal; `Ctrl-c` também cancela a operação atual.
