@@ -67,8 +67,13 @@ Workspaces keep their buffers and project directory for the current session.
 ## Shell commands
 
 On Linux, `:!command` runs a shell command in the project directory. Press
-Enter afterward to return. `:term` opens an interactive shell; use `exit`
-or Ctrl-D to return. `:term command` returns when the command finishes.
+Enter afterward to return. `:.!command` replaces the current line with command
+output; `:%!command` filters the whole buffer. `:r !command` inserts output
+below the current line. These edits can be undone with `u`.
+
+`:term` opens or focuses an embedded terminal pane; `:term command` runs a
+command in it. Press `Ctrl-\` then `Ctrl-n` to return focus to the editor.
+Use `exit` or Ctrl-D to end the shell, or `:termclose` to close the pane.
 Save first if the command needs your latest edits.
 
 ## Notes

@@ -48,6 +48,8 @@ type Editor struct {
 	ClipboardRead               func() (string, error)
 	ClipboardWrite              func(string) error
 	RunShell                    func(command string, interactive bool) error
+	CaptureShell                func(command, input string) (string, error)
+	CloseTerminal               func() error
 	Workspace                   int
 	workspaces                  map[int]workspace
 	PickingProjects             bool
@@ -293,6 +295,9 @@ func (e *Editor) handle(key string) {
 	case ":":
 		e.Mode = Command
 		e.Prompt = ""
+		if visual {
+			e.Prompt = "'<,'>"
+		}
 	case "/", "?":
 		e.Mode = Search
 		e.Prompt = ""
@@ -973,6 +978,9 @@ func (e *Editor) openPath(path string) {
 }
 func (e *Editor) Execute(cmd string) {
 	cmd = strings.TrimSpace(cmd)
+	if e.shellEdit(cmd) {
+		return
+	}
 	if command, ok := strings.CutPrefix(cmd, "!"); ok {
 		command = strings.TrimSpace(command)
 		if command == "" {
@@ -992,6 +1000,14 @@ func (e *Editor) Execute(cmd string) {
 	switch name {
 	case "term", "terminal":
 		e.executeShell(arg, true)
+	case "termclose":
+		if e.CloseTerminal == nil {
+			e.Message = "No terminal is open"
+		} else if err := e.CloseTerminal(); err != nil {
+			e.Message = err.Error()
+		} else {
+			e.Message = "Terminal closed"
+		}
 	case "w", "write", "wq", "x":
 		if arg != "" {
 			arg = e.projectPath(arg)
@@ -1103,7 +1119,7 @@ func (e *Editor) executeShell(command string, interactive bool) {
 		return
 	}
 	if interactive {
-		e.Message = "Returned from terminal"
+		e.Message = "Terminal opened"
 	} else {
 		e.Message = "Shell command finished"
 	}

@@ -4,7 +4,9 @@ go 1.23.0
 
 require (
 	github.com/alecthomas/chroma/v2 v2.15.0
+	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.8.1
+	github.com/hinshun/vt10x v0.0.0-20220301184237-5011da428d02
 	github.com/mattn/go-runewidth v0.0.16
 	golang.org/x/sys v0.29.0
 )

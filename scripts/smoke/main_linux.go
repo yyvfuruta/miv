@@ -55,7 +55,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "smoke:", err)
 		os.Exit(1)
 	}
-	fmt.Println("PTY smoke passed: editing, paste, shells, Ctrl-C, directory picker, workspaces, leader save, terminal restoration")
+	fmt.Println("PTY smoke passed: editing, paste, embedded terminal, shell filters, Ctrl-C, directory picker, workspaces, terminal restoration")
 }
 
 func openPTY() (*os.File, *os.File, error) {
@@ -251,13 +251,47 @@ func run() error {
 	if err = t.shell("sleep 10", "", true); err != nil {
 		return err
 	}
+	terminalStart := t.output.length()
 	if err = t.send(":term\r", 300*time.Millisecond); err != nil {
 		return err
 	}
-	if err = t.send("printf interactive > term-output.txt\nexit\n", 400*time.Millisecond); err != nil {
+	if strings.Contains(t.output.from(terminalStart), "\x1b[?1049l") {
+		return fmt.Errorf(":term left the editor screen")
+	}
+	if err = t.send("printf interactive > term-output.txt\n", 200*time.Millisecond); err != nil {
 		return err
 	}
 	if err = checkFile(filepath.Join(directory, "term-output.txt"), "interactive"); err != nil {
+		return err
+	}
+	if err = t.send("\x1c\x0e", 150*time.Millisecond); err != nil {
+		return err
+	}
+	if err = t.send(":.!tr a-z A-Z\r", 200*time.Millisecond); err != nil {
+		return err
+	}
+	if err = t.send(":w\r", 100*time.Millisecond); err != nil {
+		return err
+	}
+	if err = checkFile(path, "Hello, café!\nPASTED WITHOUT INDENTATION\n"); err != nil {
+		return fmt.Errorf("line filter: %w", err)
+	}
+	if err = t.send("u", 100*time.Millisecond); err != nil {
+		return err
+	}
+	if err = t.send(":r !printf 'added\\n'\r", 200*time.Millisecond); err != nil {
+		return err
+	}
+	if err = t.send(":w\r", 100*time.Millisecond); err != nil {
+		return err
+	}
+	if err = checkFile(path, "Hello, café!\npasted without indentation\nadded\n"); err != nil {
+		return fmt.Errorf("read shell output: %w", err)
+	}
+	if err = t.send("u:term\r", 200*time.Millisecond); err != nil {
+		return err
+	}
+	if err = t.send("exit\n", 300*time.Millisecond); err != nil {
 		return err
 	}
 	if err = t.send(":term printf command > term-command.txt\r", 300*time.Millisecond); err != nil {

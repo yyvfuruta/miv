@@ -51,11 +51,21 @@ func run() error {
 	defer screen.Fini()
 	screen.EnablePaste()
 	var shellErr error
+	v := view{screen: screen, e: e}
+	defer func() {
+		if v.terminal != nil {
+			_ = v.closeTerminal()
+		}
+	}()
+	e.CaptureShell = func(command, input string) (string, error) { return captureShell(screen, command, input, e.Root) }
+	e.CloseTerminal = v.closeTerminal
 	e.RunShell = func(command string, interactive bool) error {
-		shellErr = runShell(screen, command, interactive, e.Root)
+		if interactive {
+			return v.openTerminal(command, e.Root)
+		}
+		shellErr = runShell(screen, command, false, e.Root)
 		return shellErr
 	}
-	v := view{screen: screen, e: e}
 	pasting := false
 	var paste strings.Builder
 	for !e.Quit {
@@ -72,9 +82,22 @@ func run() error {
 			if pasting {
 				paste.Reset()
 			} else {
-				e.InsertPaste(paste.String())
+				if v.terminal != nil && v.terminal.focused {
+					if err := v.terminal.paste(paste.String()); err != nil {
+						e.Message = err.Error()
+					}
+				} else {
+					e.InsertPaste(paste.String())
+				}
 			}
 		case *tcell.EventKey:
+			if v.terminal != nil && v.terminal.focused && !pasting {
+				if err := v.terminal.key(ev); err != nil {
+					e.Message = err.Error()
+					v.terminal.focused = false
+				}
+				continue
+			}
 			if pasting {
 				switch ev.Key() {
 				case tcell.KeyRune:
@@ -117,6 +140,7 @@ type view struct {
 	top, left int
 	last      *editor.Buffer
 	syntax    syntaxCache
+	terminal  *terminalPane
 }
 
 var (
@@ -186,6 +210,16 @@ func (v *view) draw() {
 	v.syntax.update(b.Path, text)
 	lines := strings.Split(text, "\n")
 	height := max(1, h-3)
+	if v.terminal != nil {
+		select {
+		case <-v.terminal.done:
+			v.terminal.focused = false
+		default:
+		}
+		if h >= 6 {
+			height, _, _ = terminalGeometry(w, h)
+		}
+	}
 	margin := min(5, height/3)
 	if row < v.top+margin {
 		v.top = max(0, row-margin)
@@ -331,11 +365,14 @@ func (v *view) draw() {
 		s.ShowCursor(min(w-1, runewidth.StringWidth(bottom)), h-1)
 	} else {
 		x, y := gutter+displayCol-v.left, row-v.top+1
-		if x < w && y < h-2 {
+		if x < w && y <= height && y < h-2 {
 			s.ShowCursor(x, y)
 		} else {
 			s.HideCursor()
 		}
+	}
+	if v.terminal != nil {
+		v.drawTerminal(w, h)
 	}
 	s.Show()
 }
