@@ -54,6 +54,9 @@ YAML-aware indentation. Use `Ctrl-d` or `Shift-Tab` in insert mode to unindent.
 | Open or create a file | `:e path` |
 | Switch buffers | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
 | List buffers | `:ls` |
+| Split below / right | `SPC w s` / `SPC w v`, `:split` / `:vsplit` |
+| Focus left / down / up / right window | `SPC w h` / `SPC w j` / `SPC w k` / `SPC w l` |
+| Close the current file window | `SPC w q`, `:close` |
 | Switch workspace | `SPC TAB 1` through `SPC TAB 9` |
 | List and select workspaces | `:workspaces` or `:ws` |
 | Create a workspace | `SPC TAB n` or `:wsnew [N]` |
@@ -62,7 +65,10 @@ YAML-aware indentation. Use `Ctrl-d` or `Shift-Tab` in insert mode to unindent.
 Pickers support fuzzy filtering, arrows or `Ctrl-j`/`Ctrl-k`, Enter to select,
 and Esc to cancel. Workspace lists mark the current workspace with `*` and
 unsaved edits with `+`. Relative file paths use the current project directory.
-Workspaces keep their buffers and project directory for the current session.
+Workspaces keep their buffers, split layout, and project directory for the
+current session. Each file window keeps its own cursor and scroll position.
+Closing a split keeps its buffer available; `:q` closes the current split
+when multiple file windows are open.
 
 ## Shell commands
 
@@ -73,7 +79,9 @@ below the current line. These edits can be undone with `u`.
 
 `:term` opens or focuses an embedded terminal pane; `:term command` runs a
 command in it. Press `Ctrl-\` then `Ctrl-n` to return focus to the editor.
-Use `exit` or Ctrl-D to end the shell, or `:termclose` to close the pane.
+From the bottom file window, `SPC w j` also focuses the terminal. Leader
+bindings apply in normal mode; use `Ctrl-\` then `Ctrl-n` when leaving shell
+input. Use `exit` or Ctrl-D to end the shell, or `:termclose` to close the pane.
 Save first if the command needs your latest edits.
 
 ## Notes

@@ -55,6 +55,8 @@ type Editor struct {
 	PickingProjects             bool
 	PickingWorkspaces           bool
 	workspaceEntries            map[string]int
+	windows                     windowState
+	NavigateWindow              func(string)
 }
 
 func New(paths []string) (*Editor, error) {
@@ -116,6 +118,7 @@ func (e *Editor) Handle(key string) {
 		}
 		b.End()
 	}
+	e.syncWindow()
 }
 func (e *Editor) handle(key string) {
 	b := e.Buffer()
@@ -350,7 +353,7 @@ func (e *Editor) pendingKey(key string) {
 			e.reset()
 			return
 		}
-		if key == "f" || key == "p" || key == "<Tab>" {
+		if key == "f" || key == "p" || key == "w" || key == "<Tab>" {
 			e.pending = " " + key
 			return
 		}
@@ -363,7 +366,7 @@ func (e *Editor) pendingKey(key string) {
 		e.reset()
 		return
 	}
-	if pending == " f" || pending == " p" || pending == " <Tab>" {
+	if pending == " f" || pending == " p" || pending == " w" || pending == " <Tab>" {
 		e.reset()
 		switch pending {
 		case " f":
@@ -379,6 +382,23 @@ func (e *Editor) pendingKey(key string) {
 			}
 			if key == "f" {
 				e.StartPicker()
+			}
+		case " w":
+			if len(key) == 1 && strings.Contains("hjkl", key) {
+				if e.NavigateWindow != nil {
+					e.NavigateWindow(key)
+				} else {
+					e.FocusWindow(key)
+				}
+			}
+			if key == "s" {
+				e.SplitWindow(false)
+			}
+			if key == "v" {
+				e.SplitWindow(true)
+			}
+			if key == "q" && !e.CloseWindow() {
+				e.Message = "Cannot close the last file window"
 			}
 		case " <Tab>":
 			if key == "n" {
@@ -998,6 +1018,14 @@ func (e *Editor) Execute(cmd string) {
 	name = strings.TrimSuffix(name, "!")
 	b := e.Buffer()
 	switch name {
+	case "split", "sp", "vsplit", "vs":
+		if e.SplitWindow(name == "vsplit" || name == "vs") && arg != "" {
+			e.openPath(arg)
+		}
+	case "close":
+		if !e.CloseWindow() {
+			e.Message = "Cannot close the last file window"
+		}
 	case "term", "terminal":
 		e.executeShell(arg, true)
 	case "termclose":
@@ -1018,9 +1046,15 @@ func (e *Editor) Execute(cmd string) {
 		}
 		e.Message = fmt.Sprintf("Saved: %s", b.Path)
 		if name == "wq" || name == "x" {
+			if !e.CloseWindow() {
+				e.closeBuffer(force)
+			}
+		}
+	case "q", "quit":
+		if !e.CloseWindow() {
 			e.closeBuffer(force)
 		}
-	case "q", "quit", "bd":
+	case "bd":
 		e.closeBuffer(force)
 	case "qa", "qall":
 		for _, b := range e.allBuffers() {
@@ -1098,6 +1132,7 @@ func (e *Editor) closeBuffer(force bool) {
 			if id != e.Workspace && e.workspaces[id].hasContent() {
 				e.Buffers = []*Buffer{NewBuffer()}
 				e.Active = 0
+				e.windows = windowState{}
 				e.SwitchWorkspace(id)
 				return
 			}
@@ -1105,8 +1140,10 @@ func (e *Editor) closeBuffer(force bool) {
 		e.Quit = true
 		return
 	}
+	removed := e.Buffer()
 	e.Buffers = append(e.Buffers[:e.Active], e.Buffers[e.Active+1:]...)
 	e.Active = min(e.Active, len(e.Buffers)-1)
+	e.replaceWindowBuffer(removed)
 }
 
 func (e *Editor) executeShell(command string, interactive bool) {

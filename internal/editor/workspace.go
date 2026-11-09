@@ -9,6 +9,7 @@ type workspace struct {
 	buffers []*Buffer
 	active  int
 	root    string
+	windows windowState
 }
 
 func (w workspace) hasContent() bool {
@@ -26,12 +27,17 @@ func (e *Editor) SwitchWorkspace(id int) {
 		return
 	}
 	e.Buffer().End()
-	e.workspaces[e.Workspace] = workspace{e.Buffers, e.Active, e.Root}
+	e.syncWindow()
+	e.workspaces[e.Workspace] = workspace{buffers: e.Buffers, active: e.Active, root: e.Root, windows: e.windows}
 	next, ok := e.workspaces[id]
 	if !ok {
 		next = workspace{buffers: []*Buffer{NewBuffer()}, root: e.Root}
 	}
 	e.Buffers, e.Active, e.Root = next.buffers, next.active, next.root
+	e.windows = next.windows
+	if e.windows.active != nil {
+		e.activateWindow(e.windows.active)
+	}
 	e.Workspace = id
 	e.Mode, e.Prompt = Normal, ""
 	e.PickingProjects, e.PickingWorkspaces = false, false
@@ -66,7 +72,7 @@ func (e *Editor) StartWorkspaces() {
 		w, exists := e.workspaces[id]
 		mark := ""
 		if id == e.Workspace {
-			w = workspace{e.Buffers, e.Active, e.Root}
+			w = workspace{buffers: e.Buffers, active: e.Active, root: e.Root, windows: e.windows}
 			exists, mark = true, "*"
 		}
 		if !exists {

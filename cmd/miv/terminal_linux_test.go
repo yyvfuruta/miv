@@ -62,9 +62,10 @@ func TestEmbeddedTerminalProcessAndResize(t *testing.T) {
 	if v.terminal.focused {
 		t.Fatal("exited terminal kept keyboard focus")
 	}
-	if err := v.openTerminal("sleep 10", t.TempDir()); err != nil {
+	if err := v.openTerminal("printf interrupt-ready; sleep 10", t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
+	waitTerminal(t, v.terminal, "interrupt-ready")
 	if err := v.terminal.key(tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)); err != nil {
 		t.Fatal(err)
 	}

@@ -347,6 +347,18 @@ func run() error {
 	if err = t.editorReady(); err != nil {
 		return err
 	}
+	if err = t.send(" wj"); err != nil {
+		return err
+	}
+	if err = t.screenContains(" TERMINAL ", "MIV_SMOKE_PROMPT>"); err != nil {
+		return err
+	}
+	if err = t.send("\x1c\x0e"); err != nil {
+		return err
+	}
+	if err = t.editorReady(); err != nil {
+		return err
+	}
 	// Deliberately type :w before the slow filter finishes: input must be preserved.
 	if err = t.send(":.!sleep 0.35; tr a-z A-Z\r:w\r"); err != nil {
 		return err
@@ -385,6 +397,46 @@ func run() error {
 		return err
 	}
 	if err = t.editorReady(); err != nil {
+		return err
+	}
+	// File splits share text while keeping independent cursors.
+	if err = t.send(" wv0"); err != nil {
+		return err
+	}
+	if err = t.screenContains("│", " 2:1 "); err != nil {
+		return err
+	}
+	if err = t.send(" wh"); err != nil {
+		return err
+	}
+	if err = t.screenContains(" 2:26 "); err != nil {
+		return err
+	}
+	if err = t.send(" wl ws"); err != nil {
+		return err
+	}
+	if err = t.screenContains("─", " 2:1 "); err != nil {
+		return err
+	}
+	if err = t.send(" wk$"); err != nil {
+		return err
+	}
+	if err = t.screenContains(" 2:26 "); err != nil {
+		return err
+	}
+	if err = t.send(" wj"); err != nil {
+		return err
+	}
+	if err = t.screenContains(" 2:1 "); err != nil {
+		return err
+	}
+	if err = t.send(" wq wq"); err != nil {
+		return err
+	}
+	if err = t.until("single file window", func() bool {
+		text := t.output.screen.String()
+		return !strings.Contains(text, "│") && !strings.Contains(text, "─") && strings.Contains(text, " 2:26 ")
+	}); err != nil {
 		return err
 	}
 	if err = t.send("A!"); err != nil {

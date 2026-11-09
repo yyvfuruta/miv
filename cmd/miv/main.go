@@ -64,6 +64,7 @@ func run() error {
 		})
 	}
 	e.CloseTerminal = v.closeTerminal
+	e.NavigateWindow = v.focusWindow
 	e.RunShell = func(command string, interactive bool) error {
 		if interactive {
 			return v.openTerminal(command, e.Root)
@@ -145,12 +146,10 @@ func keyName(ev *tcell.EventKey) string {
 }
 
 type view struct {
-	screen    tcell.Screen
-	e         *editor.Editor
-	top, left int
-	last      *editor.Buffer
-	syntax    syntaxCache
-	terminal  *terminalPane
+	screen   tcell.Screen
+	e        *editor.Editor
+	panes    map[*editor.Window]*fileViewport
+	terminal *terminalPane
 }
 
 var (
@@ -210,15 +209,7 @@ func (v *view) draw() {
 	s.SetStyle(base)
 	s.Clear()
 	b := e.Buffer()
-	if v.last != b {
-		v.top = 0
-		v.left = 0
-		v.last = b
-	}
 	row, col := b.RowCol()
-	text := string(b.Text)
-	v.syntax.update(b.Path, text)
-	lines := strings.Split(text, "\n")
 	height := max(1, h-3)
 	if v.terminal != nil {
 		select {
@@ -229,27 +220,6 @@ func (v *view) draw() {
 		if h >= 6 {
 			height, _, _ = terminalGeometry(w, h)
 		}
-	}
-	margin := min(5, height/3)
-	if row < v.top+margin {
-		v.top = max(0, row-margin)
-	}
-	if row >= v.top+height-margin {
-		v.top = max(0, row-height+margin+1)
-	}
-	gutter := len(fmt.Sprint(len(lines))) + 2
-	contentW := max(1, w-gutter)
-	tab := 4
-	switch strings.ToLower(filepath.Ext(b.Path)) {
-	case ".yaml", ".yml", ".sh", ".bash", ".json", ".jsonc":
-		tab = 2
-	}
-	displayCol := cellCol([]rune(lines[row]), col, tab)
-	if displayCol < v.left {
-		v.left = displayCol
-	}
-	if displayCol >= v.left+contentW {
-		v.left = displayCol - contentW + 1
 	}
 	// Waybar layout: buffer tags on the left, file title centered, position on the right.
 	fill(s, 0, w, bar)
@@ -276,64 +246,7 @@ func (v *view) draw() {
 		put(s, titleX, 0, right-1, name, bar)
 	}
 	put(s, right, 0, w, position, bar)
-	start, end := -1, -1
-	if e.Mode == editor.Visual || e.Mode == editor.VisualLine {
-		start, end = min(e.Anchor, b.Cursor), max(e.Anchor, b.Cursor)+1
-		if e.Mode == editor.VisualLine {
-			start = b.LineStart(start)
-			end = b.LineEnd(end-1) + 1
-		}
-	}
-	offset := 0
-	for i := 0; i < v.top && i < len(lines); i++ {
-		offset += len([]rune(lines[i])) + 1
-	}
-	tokenIndex := v.syntax.firstSpan(offset)
-	for y := 1; y <= height && y < h; y++ {
-		lineIndex := v.top + y - 1
-		if lineIndex >= len(lines) {
-			put(s, 0, y, w, "~", muted)
-			continue
-		}
-		put(s, 0, y, w, fmt.Sprintf("%*d ", gutter-1, lineIndex+1), muted)
-		cells := 0
-		runes := []rune(lines[lineIndex])
-		lastX := -1
-		for j, r := range runes {
-			style := v.syntax.styleAt(offset+j, &tokenIndex)
-			if offset+j >= start && offset+j < end {
-				style = selected
-			}
-			width := runewidth.RuneWidth(safeRune(r))
-			if r == '\t' {
-				width = tab - cells%tab
-			}
-			x := gutter + cells - v.left
-			if width == 0 && lastX >= gutter {
-				main, comb, st, _ := s.GetContent(lastX, y)
-				s.SetContent(lastX, y, main, append(comb, r), st)
-				continue
-			}
-			if x >= gutter && x+width <= w {
-				if r == '\t' {
-					for k := 0; k < width; k++ {
-						s.SetContent(x+k, y, ' ', nil, style)
-					}
-				} else {
-					s.SetContent(x, y, safeRune(r), nil, style)
-					lastX = x
-				}
-			}
-			cells += width
-		}
-		if offset+len(runes) >= start && offset+len(runes) < end {
-			x := gutter + cells - v.left
-			if x >= gutter && x < w {
-				s.SetContent(x, y, ' ', nil, selected)
-			}
-		}
-		offset += len(runes) + 1
-	}
+	v.drawWindows(w, height)
 	if h >= 2 {
 		fill(s, h-2, w, bar)
 		put(s, 0, h-2, w, fmt.Sprintf(" %s  %s", e.Mode, b.Path), bar)
@@ -373,14 +286,8 @@ func (v *view) draw() {
 	put(s, 0, h-1, w, bottom, muted)
 	if e.Mode == editor.Command || e.Mode == editor.Search || e.Mode == editor.Picker {
 		s.ShowCursor(min(w-1, runewidth.StringWidth(bottom)), h-1)
-	} else {
-		x, y := gutter+displayCol-v.left, row-v.top+1
-		if x < w && y <= height && y < h-2 {
-			s.ShowCursor(x, y)
-		} else {
-			s.HideCursor()
-		}
 	}
+
 	if v.terminal != nil {
 		v.drawTerminal(w, h)
 	}
