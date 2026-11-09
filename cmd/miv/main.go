@@ -100,6 +100,7 @@ type view struct {
 	e         *editor.Editor
 	top, left int
 	last      *editor.Buffer
+	syntax    syntaxCache
 }
 
 var (
@@ -165,7 +166,9 @@ func (v *view) draw() {
 		v.last = b
 	}
 	row, col := b.RowCol()
-	lines := strings.Split(string(b.Text), "\n")
+	text := string(b.Text)
+	v.syntax.update(b.Path, text)
+	lines := strings.Split(text, "\n")
 	height := max(1, h-3)
 	margin := min(5, height/3)
 	if row < v.top+margin {
@@ -225,6 +228,7 @@ func (v *view) draw() {
 	for i := 0; i < v.top && i < len(lines); i++ {
 		offset += len([]rune(lines[i])) + 1
 	}
+	tokenIndex := v.syntax.firstSpan(offset)
 	for y := 1; y <= height && y < h; y++ {
 		lineIndex := v.top + y - 1
 		if lineIndex >= len(lines) {
@@ -236,7 +240,7 @@ func (v *view) draw() {
 		runes := []rune(lines[lineIndex])
 		lastX := -1
 		for j, r := range runes {
-			style := base
+			style := v.syntax.styleAt(offset+j, &tokenIndex)
 			if offset+j >= start && offset+j < end {
 				style = selected
 			}

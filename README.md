@@ -32,6 +32,20 @@ e buffer ativo com fundo `#333333` e texto `#eeeeee`, sem negrito.
 A barra superior mostra os buffers à esquerda, o arquivo ao centro e a
 posição à direita. A seleção usa o mesmo cinza do buffer ativo.
 
+## Syntax highlighting
+
+Ativado automaticamente pelo nome/extensão do arquivo, usando Chroma.
+Inclui Go, Rust, C/C++, Python, JavaScript/TypeScript, shell, JSON/JSONC,
+YAML, Lua, HTML/CSS, Markdown, Makefile e outras linguagens reconhecidas
+pela biblioteca. Arquivos novos ganham destaque ao salvar com uma extensão.
+
+Comentários, strings, números, palavras-chave, tipos e funções usam a
+paleta ANSI do terminal; o fundo continua sendo o do foot. A seleção visual
+mantém seu destaque cinza. Comentários e strings de várias linhas são
+reconhecidos a partir do documento inteiro, com cache enquanto o conteúdo
+não muda. Arquivos sem linguagem reconhecida ou maiores que 1 MiB usam
+texto sem destaque. Não requer LSP, plugins nem programas externos.
+
 ## Comandos
 
 `Esc` retorna ao modo normal; `Ctrl-c` também cancela a operação atual.
@@ -112,7 +126,7 @@ hardlinks, proprietário de outro usuário, ACLs ou atributos estendidos.
 Não há swap, autosave nem recuperação após encerramento inesperado.
 
 Ficaram fora desta versão: LSP, plugins/Vimscript/Lua, debugger,
-syntax highlighting, splits, seleção em bloco, macros, múltiplos
+splits, seleção em bloco, macros, múltiplos
 registradores, regex/substituição e grafemas complexos como unidade de edição.
 Movimentos e posições usam pontos de código Unicode. A semântica de comandos
 é um subconjunto simplificado do Vim, incluindo o tratamento da última linha.
