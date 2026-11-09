@@ -76,20 +76,25 @@ Operations accept counts, such as `5j`, `3dw`, `d2w`, and `2dd`.
 | Literal search forward/backward | `/text`, `?text`, Enter |
 | Next/previous occurrence | `n`, `N` |
 | Search for the word under the cursor | `*` |
-| Find a file | `Ctrl-p`, `Space f`, `:files` |
+| Find a file | `Ctrl-p`, `Space f f`, `:files` |
+| Switch projects | `Space p p`, `:projects` |
+| Switch workspace | `Space Tab 1` through `Space Tab 9` |
 | Switch buffers | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
 | Go to buffer N/last | `Space 1` through `Space 9`, `Space 0` |
 | List buffers | `:ls` |
 | Open/create a file in another buffer | `:e path` |
-| Save | `:w`, `:w path`, `Space s` |
+| Save | `:w`, `:w path`, `Space f s`, `Space s` |
 | Save and close the buffer | `:wq` |
 | Close the buffer; quit all buffers | `:q`, `:qa` |
 | Discard changes when closing | `:q!`, `:qa!` |
+| Run a shell command | `:!command` |
+| Start an interactive shell | `:term`, `:terminal` |
+| Run a command with direct return | `:term command` |
 
 The file picker uses subsequence matching: `smg` matches `src/main.go`.
 Use arrow keys or `Ctrl-j`/`Ctrl-k`, Enter to open, and Esc to cancel.
-It searches from the directory where the editor was started, includes hidden
-files, skips `.git`, `node_modules`, `target`, `vendor`, and `.cache`, and
+It searches from the current workspace project directory (initially the
+directory where the editor was started), includes hidden files, skips `.git`, `node_modules`, `target`, `vendor`, and `.cache`, and
 limits the listing to 20,000 files. It does not follow symlinks.
 
 In insert mode: Backspace, Delete, Enter with automatic indentation,
@@ -97,6 +102,65 @@ Tab with spaces, arrow keys, and `Ctrl-w` to delete the previous word.
 `Ctrl-d` or `Shift-Tab` removes one indentation level in insert mode.
 Terminal paste uses bracketed paste to preserve content without interpreting
 commands or adding indentation.
+
+## Shell commands
+
+On Linux, `:!command` runs a command through `$SHELL` (falling back to
+`/bin/sh`). Shell quoting, environment variables, pipes, redirection, and
+interactive input work normally. For example:
+
+```vim
+:!go test ./...
+:!git status
+:!printf 'hello\n' | tr a-z A-Z
+```
+
+The command takes over the terminal. Press Enter afterward to return to the
+editor; failures also report the exit status. Ctrl-C interrupts the command
+while keeping the editor alive.
+
+`:term` (or `:terminal`) starts an interactive shell in the same terminal.
+Type `exit` or press Ctrl-D at an empty shell prompt to return. With an
+argument, `:term command` runs that command and returns immediately when it
+finishes, without the extra Enter prompt.
+
+Both forms use the current workspace's project directory. Open buffers and
+unsaved edits stay in memory. Save first if the command needs your latest
+file contents. The shell's `cd` applies to that shell only.
+
+## Projects and workspaces
+
+The leader is Space. Press these keys in sequence in normal mode:
+
+| Binding | Action |
+| --- | --- |
+| `SPC f s` | Save the current file |
+| `SPC f f` | Find a file in the current project |
+| `SPC p p` | Choose a project, then find a file in it |
+| `SPC TAB 1`–`SPC TAB 9` | Switch to workspace 1–9 |
+
+`SPC f` is now a prefix; press a second `f` to open the file picker.
+`Ctrl-p` still opens the picker directly. Esc cancels an unfinished sequence.
+
+The project picker discovers Git repositories near the current project,
+including sibling repositories and repositories under nearby owner
+directories such as `github.com/owner/repo`. Discovery checks at most 2,000
+directories, includes project roots from visited workspaces, and always
+includes the current root. Use the same fuzzy filter and navigation keys as
+the file picker. Selecting a project changes the current workspace's project
+directory; relative `:e` and `:w path` commands then use that directory.
+
+Workspaces are created on demand and keep their buffers, active buffer,
+cursor positions, undo history, and project directory for this session.
+The `W1`–`W9` badge in the top bar identifies the active workspace; numbered
+buffer tags follow it. Existing `Space 1`–`Space 9` bindings still select
+buffers within that workspace.
+
+Switching workspaces keeps unsaved changes. Closing the last buffer with
+`:q` moves to another workspace that still has files; `:qa` checks all
+workspaces before quitting. `:qa!` discards unsaved changes in every
+workspace. Workspaces and project choices are kept in memory for this
+session and are not persisted after exit.
 
 ## Automatic indentation
 
@@ -138,8 +202,8 @@ or parser. It does not insert list markers or reformat pasted text.
 - Long lines scroll horizontally; there is no visual line wrapping.
 
 The editor has fixed preferences and does not read `.vimrc` or Neovim
-configuration. Custom shortcuts are simplified: save is `Space s`;
-`Space f s` is not implemented.
+configuration. Doom-style leader bindings are listed above; `Space s`
+remains a shortcut for saving.
 
 ## Files and limits
 
@@ -172,6 +236,7 @@ make smoke  # Python 3 and a Unix pseudoterminal
 The core in `internal/editor` does not depend on the terminal. `cmd/miv`
 connects events, draws the screen with tcell, and accesses the clipboard.
 Tests cover editing, history, files, search, the picker, rendering, resizing,
-and syntax highlighting. The smoke test opens the binary in a PTY, edits
-UTF-8 text, pastes multiple lines, saves, closes, and verifies that terminal
-settings are restored.
+syntax highlighting, workspaces, project discovery, and shell dispatch.
+The smoke test opens the binary in a PTY, edits UTF-8 text, pastes multiple
+lines, runs shell commands and an interactive shell, interrupts a command
+with Ctrl-C, saves, closes, and verifies that terminal settings are restored.

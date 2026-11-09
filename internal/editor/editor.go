@@ -46,10 +46,14 @@ type Editor struct {
 	Root                        string
 	ClipboardRead               func() (string, error)
 	ClipboardWrite              func(string) error
+	RunShell                    func(command string, interactive bool) error
+	Workspace                   int
+	workspaces                  map[int]workspace
+	PickingProjects             bool
 }
 
 func New(paths []string) (*Editor, error) {
-	e := &Editor{desiredCol: -1, Root: "."}
+	e := &Editor{desiredCol: -1, Root: ".", Workspace: 1, workspaces: make(map[int]workspace)}
 	for _, p := range paths {
 		b, err := Open(p)
 		if err != nil {
@@ -316,9 +320,8 @@ func (e *Editor) pendingKey(key string) {
 			e.reset()
 			return
 		}
-		if key == "f" {
-			e.StartPicker()
-			e.reset()
+		if key == "f" || key == "p" || key == "<Tab>" {
+			e.pending = " " + key
 			return
 		}
 		if key == "s" {
@@ -328,6 +331,28 @@ func (e *Editor) pendingKey(key string) {
 			e.nextBuffer(1)
 		}
 		e.reset()
+		return
+	}
+	if pending == " f" || pending == " p" || pending == " <Tab>" {
+		e.reset()
+		switch pending {
+		case " f":
+			if key == "s" {
+				e.Execute("w")
+			}
+			if key == "f" {
+				e.StartPicker()
+			}
+		case " p":
+			if key == "p" {
+				e.StartProjects()
+			}
+		case " <Tab>":
+			if len(key) == 1 && key >= "1" && key <= "9" {
+				id, _ := strconv.Atoi(key)
+				e.SwitchWorkspace(id)
+			}
+		}
 		return
 	}
 	if pending == "g" {
@@ -892,7 +917,7 @@ func (e *Editor) nextBuffer(dir int) {
 	e.desiredCol = -1
 }
 func (e *Editor) openPath(path string) {
-	abs, err := filepath.Abs(path)
+	abs, err := filepath.Abs(e.projectPath(path))
 	if err != nil {
 		e.Message = err.Error()
 		return
@@ -903,7 +928,7 @@ func (e *Editor) openPath(path string) {
 			return
 		}
 	}
-	b, err := Open(path)
+	b, err := Open(abs)
 	if err != nil {
 		e.Message = err.Error()
 		return
@@ -914,13 +939,29 @@ func (e *Editor) openPath(path string) {
 }
 func (e *Editor) Execute(cmd string) {
 	cmd = strings.TrimSpace(cmd)
-	name, arg, _ := strings.Cut(cmd, " ")
-	arg = strings.TrimSpace(arg)
+	if command, ok := strings.CutPrefix(cmd, "!"); ok {
+		command = strings.TrimSpace(command)
+		if command == "" {
+			e.Message = "Use :!command"
+			return
+		}
+		e.executeShell(command, false)
+		return
+	}
+	name, arg := cmd, ""
+	if at := strings.IndexFunc(cmd, unicode.IsSpace); at >= 0 {
+		name, arg = cmd[:at], strings.TrimSpace(cmd[at:])
+	}
 	force := strings.HasSuffix(name, "!")
 	name = strings.TrimSuffix(name, "!")
 	b := e.Buffer()
 	switch name {
+	case "term", "terminal":
+		e.executeShell(arg, true)
 	case "w", "write", "wq", "x":
+		if arg != "" {
+			arg = e.projectPath(arg)
+		}
 		if err := b.Save(arg, force); err != nil {
 			e.Message = err.Error()
 			return
@@ -932,7 +973,7 @@ func (e *Editor) Execute(cmd string) {
 	case "q", "quit", "bd":
 		e.closeBuffer(force)
 	case "qa", "qall":
-		for _, b := range e.Buffers {
+		for _, b := range e.allBuffers() {
 			if b.Dirty() && !force {
 				e.Message = "Unsaved changes; use :qa! to discard them"
 				return
@@ -966,10 +1007,12 @@ func (e *Editor) Execute(cmd string) {
 			names = append(names, fmt.Sprintf("%d:%s%s", i+1, filepath.Base(b.Path), mark))
 		}
 		e.Message = strings.Join(names, "  ")
+	case "projects":
+		e.StartProjects()
 	case "files":
 		e.StartPicker()
 	case "help", "h":
-		e.Message = "hjkl wbe  i/a/o  v/V  d/c/y+motion  p  u/Ctrl-r  / n/N  :w :q  Ctrl-p  gt/gT"
+		e.Message = "SPC f s:save  f f:files  p p:projects  TAB 1-9:workspace  :!cmd :term  :w :q"
 	default:
 		if n, err := strconv.Atoi(name); err == nil && n > 0 {
 			b.Cursor = b.Offset(n-1, 0)
@@ -984,9 +1027,33 @@ func (e *Editor) closeBuffer(force bool) {
 		return
 	}
 	if len(e.Buffers) == 1 {
+		for id := 1; id <= 9; id++ {
+			if id != e.Workspace && e.workspaces[id].hasContent() {
+				e.Buffers = []*Buffer{NewBuffer()}
+				e.Active = 0
+				e.SwitchWorkspace(id)
+				return
+			}
+		}
 		e.Quit = true
 		return
 	}
 	e.Buffers = append(e.Buffers[:e.Active], e.Buffers[e.Active+1:]...)
 	e.Active = min(e.Active, len(e.Buffers)-1)
+}
+
+func (e *Editor) executeShell(command string, interactive bool) {
+	if e.RunShell == nil {
+		e.Message = "Shell execution is unavailable"
+		return
+	}
+	if err := e.RunShell(command, interactive); err != nil {
+		e.Message = "Shell command failed: " + err.Error()
+		return
+	}
+	if interactive {
+		e.Message = "Returned from terminal"
+	} else {
+		e.Message = "Shell command finished"
+	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -42,6 +43,11 @@ func run() error {
 	}
 	defer screen.Fini()
 	screen.EnablePaste()
+	var shellErr error
+	e.RunShell = func(command string, interactive bool) error {
+		shellErr = runShell(screen, command, interactive, e.Root)
+		return shellErr
+	}
 	v := view{screen: screen, e: e}
 	pasting := false
 	var paste strings.Builder
@@ -74,6 +80,9 @@ func run() error {
 				continue
 			}
 			e.Handle(keyName(ev))
+		}
+		if errors.Is(shellErr, errResumeScreen) {
+			return shellErr
 		}
 	}
 	return nil
@@ -195,7 +204,7 @@ func (v *view) draw() {
 	fill(s, 0, w, bar)
 	position := fmt.Sprintf(" %d:%d ", row+1, col+1)
 	right := max(0, w-runewidth.StringWidth(position))
-	x := 0
+	x := put(s, 0, 0, right, fmt.Sprintf(" W%d ", e.Workspace), accent)
 	for i, buf := range e.Buffers {
 		label := fmt.Sprintf(" %d ", i+1)
 		if buf.Dirty() {
@@ -286,9 +295,13 @@ func (v *view) draw() {
 		bottom = "/" + e.Prompt
 	}
 	if e.Mode == editor.Picker {
-		bottom = "Files > " + e.Prompt
+		kind := "Files"
+		if e.PickingProjects {
+			kind = "Projects"
+		}
+		bottom = kind + " > " + e.Prompt
 		fill(s, 0, w, bar)
-		put(s, 0, 0, w, fmt.Sprintf(" Files (%d) • Enter opens • Esc cancels", len(e.Matches)), accent)
+		put(s, 0, 0, w, fmt.Sprintf(" %s (%d) • Enter opens • Esc cancels", kind, len(e.Matches)), accent)
 		top := max(0, e.PickIndex-height+1)
 		for y := 1; y <= height && y < h; y++ {
 			fill(s, y, w, base)

@@ -58,7 +58,12 @@ func (e *Editor) promptKey(key string) {
 			e.find(e.search, e.searchDir)
 		case Picker:
 			if len(e.Matches) > 0 {
-				e.openPath(filepath.Join(e.Root, e.Matches[e.PickIndex]))
+				if e.PickingProjects {
+					e.Root = e.Matches[e.PickIndex]
+					e.StartPicker()
+				} else {
+					e.openPath(filepath.Join(e.Root, e.Matches[e.PickIndex]))
+				}
 			}
 		}
 	case "<Backspace>":
@@ -87,7 +92,8 @@ func (e *Editor) promptKey(key string) {
 	}
 }
 func (e *Editor) StartPicker() {
-	e.Files = nil
+	e.PickingProjects = false
+	e.Files, e.Matches = nil, nil
 	e.Prompt = ""
 	e.PickIndex = 0
 	skipped := map[string]bool{".git": true, "node_modules": true, "target": true, "vendor": true, ".cache": true}
