@@ -57,7 +57,12 @@ func run() error {
 			_ = v.closeTerminal()
 		}
 	}()
-	e.CaptureShell = func(command, input string) (string, error) { return captureShell(screen, command, input, e.Root) }
+	var pendingEvents []tcell.Event
+	e.CaptureShell = func(command, input string) (string, error) {
+		return captureShell(screen, command, input, e.Root, func(event tcell.Event) {
+			pendingEvents = append(pendingEvents, event)
+		})
+	}
 	e.CloseTerminal = v.closeTerminal
 	e.RunShell = func(command string, interactive bool) error {
 		if interactive {
@@ -70,7 +75,12 @@ func run() error {
 	var paste strings.Builder
 	for !e.Quit {
 		v.draw()
-		event := screen.PollEvent()
+		var event tcell.Event
+		if len(pendingEvents) > 0 {
+			event, pendingEvents = pendingEvents[0], pendingEvents[1:]
+		} else {
+			event = screen.PollEvent()
+		}
 		if event == nil {
 			break
 		}

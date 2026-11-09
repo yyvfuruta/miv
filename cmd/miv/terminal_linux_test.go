@@ -82,18 +82,58 @@ func TestCaptureShellInputErrorsAndCancellation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer screen.Fini()
-	text, err := captureShell(screen, "tr a-z A-Z", "hello\n", t.TempDir())
+	text, err := captureShell(screen, "tr a-z A-Z", "hello\n", t.TempDir(), nil)
 	if err != nil || text != "HELLO\n" {
 		t.Fatalf("capture: %q %v", text, err)
 	}
-	_, err = captureShell(screen, "printf error >&2; exit 7", "", t.TempDir())
+	_, err = captureShell(screen, "printf error >&2; exit 7", "", t.TempDir(), nil)
 	if err == nil || !strings.Contains(err.Error(), "error") {
 		t.Fatalf("stderr not reported: %v", err)
 	}
 	time.AfterFunc(50*time.Millisecond, func() { _ = screen.PostEvent(tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)) })
 	start := time.Now()
-	_, err = captureShell(screen, "sleep 10", "", t.TempDir())
+	_, err = captureShell(screen, "sleep 10", "", t.TempDir(), nil)
 	if err == nil || time.Since(start) > 3*time.Second {
 		t.Fatalf("capture was not canceled: %v", err)
+	}
+}
+
+func TestCapturePreservesTypeAhead(t *testing.T) {
+	t.Setenv("SHELL", "/bin/sh")
+	screen := tcell.NewSimulationScreen("UTF-8")
+	if err := screen.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Fini()
+	keys := []*tcell.EventKey{
+		tcell.NewEventKey(tcell.KeyRune, ':', tcell.ModNone),
+		tcell.NewEventKey(tcell.KeyRune, 'w', tcell.ModNone),
+		tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone),
+	}
+	for _, key := range keys {
+		if err := screen.PostEvent(key); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var pending []tcell.Event
+	text, err := captureShell(screen, "printf done", "", t.TempDir(), func(event tcell.Event) { pending = append(pending, event) })
+	if err != nil || text != "done" {
+		t.Fatalf("capture: %q %v", text, err)
+	}
+	// Also collect any keys still in tcell's queue: both locations preserve input.
+	for screen.HasPendingEvent() {
+		if event := screen.PollEvent(); event != nil {
+			if _, ok := event.(*tcell.EventKey); ok {
+				pending = append(pending, event)
+			}
+		}
+	}
+	if len(pending) != len(keys) {
+		t.Fatalf("lost type-ahead: %d events, want %d", len(pending), len(keys))
+	}
+	for i, event := range pending {
+		if event != keys[i] {
+			t.Fatalf("type-ahead order changed at %d", i)
+		}
 	}
 }

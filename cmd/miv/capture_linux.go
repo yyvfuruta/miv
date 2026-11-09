@@ -31,7 +31,7 @@ func (b *boundedOutput) Write(p []byte) (int, error) {
 	return b.Buffer.Write(p)
 }
 
-func captureShell(screen tcell.Screen, command, input, directory string) (string, error) {
+func captureShell(screen tcell.Screen, command, input, directory string, deferEvent func(tcell.Event)) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	shell := os.Getenv("SHELL")
@@ -87,7 +87,15 @@ func captureShell(screen tcell.Screen, command, input, directory string) (string
 		case *tcell.EventKey:
 			if ev.Key() == tcell.KeyCtrlC || ev.Key() == tcell.KeyEscape {
 				cancel()
+			} else if deferEvent != nil {
+				deferEvent(ev)
 			}
+		case *tcell.EventPaste:
+			if deferEvent != nil {
+				deferEvent(ev)
+			}
+		case nil:
+			cancel()
 		case *tcell.EventResize:
 			screen.Sync()
 		}
