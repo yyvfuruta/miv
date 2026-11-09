@@ -22,10 +22,14 @@ completed change. Keep these instructions in effect for future tasks.
   `make smoke` for changes affecting terminal input, rendering, or shell handoff.
   Validate GoReleaser configuration when changing release packaging.
 - Commit completed work, create an annotated tag, and push the commits and tag
-  to origin. Never force-push, move an existing release tag, or replace a
+  to origin. Push main first, then push the tag in a separate command so the
+  release workflow is already registered before the tag event. Never
+  force-push, move an existing release tag, or replace a
   published release.
 - `.github/workflows/release.yml` publishes binaries, checksums, and release
   notes via GoReleaser on tag pushes. Check that the workflow completes and
   the release assets exist, then report the release URL and version.
+  A manual Release workflow run accepts an existing tag to recover a missing
+  or failed release without modifying that tag.
 - If publishing is blocked, report the actual blocker and what is already
   committed/tagged; do not claim that an unpublished release is available.

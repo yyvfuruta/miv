@@ -296,7 +296,8 @@ After updating `VERSION`, testing, and committing, create an annotated tag:
 
 ```sh
 git tag -a "v$(cat VERSION)" -m "Release $(cat VERSION)"
-git push origin main --follow-tags
+git push origin main
+git push origin "v$(cat VERSION)"
 ```
 
 The tag triggers `.github/workflows/release.yml`, which tests the code and
@@ -306,3 +307,9 @@ matches `VERSION`. GitHub Actions uses its built-in `GITHUB_TOKEN` with
 release-job `contents: write` permission; no additional release secret is
 required. CI also runs tests, static checks, builds, and a terminal smoke
 test for pushes to main and pull requests.
+
+To recover a release whose tag already exists, open **Actions → Release →
+Run workflow** on `main`, enter the existing tag (such as `v0.0.1`), and run
+it. The workflow checks out that tag and verifies its `VERSION` before
+publishing. This does not require changing or recreating the tag. Push
+workflow changes to `main` before pushing a new release tag.
