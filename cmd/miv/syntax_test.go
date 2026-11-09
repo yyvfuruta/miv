@@ -20,20 +20,20 @@ func TestSyntaxLanguages(t *testing.T) {
 		path, text, needle string
 		color              int
 	}{
-		{"main.go", "package main\nconst msg = \"ação\"\n", "const", 5},
-		{"main.go", "package main\nconst msg = \"ação\"\n", "ação", 2},
-		{"main.go", "/* primeira\nsegunda */\nvar x = 42", "segunda", 8},
+		{"main.go", "package main\nconst msg = \"café\"\n", "const", 5},
+		{"main.go", "package main\nconst msg = \"café\"\n", "café", 2},
+		{"main.go", "/* first\nsecond */\nvar x = 42", "second", 8},
 		{"main.rs", "fn main() { let x = 42; }", "fn", 5},
 		{"main.py", "def hello():\n    return 42", "def", 5},
 		{"main.js", "const x = 42;", "const", 5},
 		{"main.ts", "const x: number = 42;", "42", 3},
-		{"run.sh", "echo \"ação\"", "ação", 2},
+		{"run.sh", "echo \"café\"", "café", 2},
 		{"config.json", "{\"count\": 42}", "42", 3},
-		{"config.jsonc", "// comentário\n{\"count\": 42}", "comentário", 8},
-		{"config.yaml", "# comentário\nvalue: 42", "comentário", 8},
-		{"main.lua", "-- comentário\nreturn 42", "comentário", 8},
-		{"main.c", "/* comentário */\nint main() { return 42; }", "return", 5},
-		{"Makefile", "# comentário\nbuild:\n\techo ok", "comentário", 8},
+		{"config.jsonc", "// café comment\n{\"count\": 42}", "café comment", 8},
+		{"config.yaml", "# café comment\nvalue: 42", "café comment", 8},
+		{"main.lua", "-- café comment\nreturn 42", "café comment", 8},
+		{"main.c", "/* café comment */\nint main() { return 42; }", "return", 5},
+		{"Makefile", "# café comment\nbuild:\n\techo ok", "café comment", 8},
 	} {
 		t.Run(tt.path+"/"+tt.needle, func(t *testing.T) {
 			var c syntaxCache
@@ -48,7 +48,7 @@ func TestSyntaxLanguages(t *testing.T) {
 
 func TestSyntaxCacheAndFallback(t *testing.T) {
 	var c syntaxCache
-	text := "/* ação */\r\nconst x = 42"
+	text := "/* café */\r\nconst x = 42"
 	c.update("main.go", text)
 	offset := utf8.RuneCountInString(text[:strings.Index(text, "const")])
 	if foregroundAt(&c, offset) != tcell.PaletteColor(5) {
@@ -89,7 +89,7 @@ func TestDrawSyntaxAndSelection(t *testing.T) {
 	e, _ := editor.New(nil)
 	b := e.Buffer()
 	b.Path = "main.go"
-	b.Text = []rune("const msg = \"ação\"\n/* comment\nstill comment */")
+	b.Text = []rune("const msg = \"café\"\n/* comment\nstill comment */")
 	v := view{screen: screen, e: e}
 	v.draw()
 	_, _, style, _ := screen.GetContent(3, 1)

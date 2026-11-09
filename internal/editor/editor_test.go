@@ -34,7 +34,7 @@ func TestEditing(t *testing.T) {
 		{"operator count", "one two three four", "d2w", "three four", false},
 		{"composed count", "1 2 3 4 5 6 7", "2d2w", "5 6 7", false},
 		{"change word", "one two", "cwnew", "new two", true},
-		{"inner word", "hello world", "lciwOlá", "Olá world", true},
+		{"inner word", "hello world", "lciwHello", "Hello world", true},
 		{"inner quotes", `x = "old text"`, `f"ci"new`, `x = "new"`, true},
 		{"inner nested brackets", "(a (b) c)", "ci(new", "(new)", true},
 		{"delete lines", "a\nb\nc\n", "2dd", "c\n", false},
@@ -46,7 +46,7 @@ func TestEditing(t *testing.T) {
 		{"delete to end", "one two", "wD", "one ", false},
 		{"append", "one", "A two", "one two", true},
 		{"join", "one\n  two", "J", "one two", false},
-		{"unicode delete", "ação", "lx", "aão", false},
+		{"unicode delete", "café", "lx", "cfé", false},
 		{"indent", "one\ntwo", ">>", "    one\ntwo", false},
 		{"repeat delete", "abcdef", "x.", "cdef", false},
 	}
@@ -137,7 +137,7 @@ func TestModesAndCommands(t *testing.T) {
 func TestSavePreservesFormatAndDetectsConflict(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "file.txt")
-	original := []byte("ação\r\nsecond")
+	original := []byte("café\r\nsecond")
 	if err := os.WriteFile(path, original, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestSavePreservesFormatAndDetectsConflict(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := string(b.Text); got != "ação\nsecond" {
+	if got := string(b.Text); got != "café\nsecond" {
 		t.Fatalf("text = %q", got)
 	}
 	b.Replace(0, 0, "X")
@@ -153,7 +153,7 @@ func TestSavePreservesFormatAndDetectsConflict(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(path)
-	if string(data) != "Xação\r\nsecond" {
+	if string(data) != "Xcafé\r\nsecond" {
 		t.Fatalf("saved = %q", data)
 	}
 	info, _ := os.Stat(path)

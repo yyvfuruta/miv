@@ -24,7 +24,7 @@ func main() {
 }
 func run() error {
 	flag.Usage = func() {
-		fmt.Fprintln(flag.CommandLine.Output(), "Uso: miv [arquivo ...]\nEditor modal enxuto. Ctrl-p: arquivos; :help: atalhos; :q: sair.")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage: miv [file ...]\nMinimal modal editor. Ctrl-p: files; :help: shortcuts; :q: quit.")
 	}
 	flag.Parse()
 	e, err := editor.New(flag.Args())
@@ -209,7 +209,7 @@ func (v *view) draw() {
 	}
 	name := filepath.Base(b.Path)
 	if b.Path == "" {
-		name = "[novo]"
+		name = "[new]"
 	}
 	titleX := max(x+1, (w-runewidth.StringWidth(name))/2)
 	if titleX < right-1 {
@@ -286,9 +286,9 @@ func (v *view) draw() {
 		bottom = "/" + e.Prompt
 	}
 	if e.Mode == editor.Picker {
-		bottom = "Arquivos > " + e.Prompt
+		bottom = "Files > " + e.Prompt
 		fill(s, 0, w, bar)
-		put(s, 0, 0, w, fmt.Sprintf(" Arquivos (%d) • Enter abre • Esc cancela", len(e.Matches)), accent)
+		put(s, 0, 0, w, fmt.Sprintf(" Files (%d) • Enter opens • Esc cancels", len(e.Matches)), accent)
 		top := max(0, e.PickIndex-height+1)
 		for y := 1; y <= height && y < h; y++ {
 			fill(s, y, w, base)
@@ -345,7 +345,7 @@ func clipboardCommand(read bool) (string, []string) {
 func readClipboard() (string, error) {
 	name, args := clipboardCommand(true)
 	if name == "" {
-		return "", fmt.Errorf("clipboard indisponível")
+		return "", fmt.Errorf("clipboard unavailable")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -355,7 +355,7 @@ func readClipboard() (string, error) {
 func writeClipboard(text string) error {
 	name, args := clipboardCommand(false)
 	if name == "" {
-		return fmt.Errorf("clipboard indisponível")
+		return fmt.Errorf("clipboard unavailable")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

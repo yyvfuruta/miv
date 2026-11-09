@@ -46,17 +46,17 @@ func Open(path string) (*Buffer, error) {
 		return nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("não é um arquivo regular: %s", path)
+		return nil, fmt.Errorf("not a regular file: %s", path)
 	}
 	if info.Size() > maxFileSize {
-		return nil, fmt.Errorf("arquivo excede o limite de 16 MiB")
+		return nil, fmt.Errorf("file exceeds the 16 MiB limit")
 	}
 	data, err := os.ReadFile(abs)
 	if err != nil {
 		return nil, err
 	}
 	if !utf8.Valid(data) || bytes.IndexByte(data, 0) >= 0 {
-		return nil, fmt.Errorf("somente arquivos de texto UTF-8 são suportados")
+		return nil, fmt.Errorf("only UTF-8 text files are supported")
 	}
 	b.disk = data
 	b.exists = true
@@ -162,7 +162,7 @@ func (b *Buffer) Save(path string, force bool) error {
 		path = b.Path
 	}
 	if path == "" {
-		return errors.New("use :w nome-do-arquivo")
+		return errors.New("use :w filename")
 	}
 	abs, err := filepath.Abs(path)
 	if err != nil {
@@ -179,23 +179,23 @@ func (b *Buffer) Save(path string, force bool) error {
 	}
 	if statErr == nil {
 		if !info.Mode().IsRegular() {
-			return errors.New("destino não é arquivo regular")
+			return errors.New("destination is not a regular file")
 		}
 		mode = info.Mode().Perm()
 		if !force {
 			if abs != b.Path || !b.exists {
-				return errors.New("arquivo já existe; use :w! para sobrescrever")
+				return errors.New("file already exists; use :w! to overwrite")
 			}
 			current, e := os.ReadFile(target)
 			if e != nil {
 				return e
 			}
 			if !bytes.Equal(current, b.disk) {
-				return errors.New("arquivo mudou no disco; use :w! para sobrescrever")
+				return errors.New("file changed on disk; use :w! to overwrite")
 			}
 		}
 	} else if !force && abs == b.Path && b.exists {
-		return errors.New("arquivo removido do disco; use :w! para recriar")
+		return errors.New("file was removed from disk; use :w! to recreate it")
 	}
 	text := string(b.Text)
 	if b.crlf {

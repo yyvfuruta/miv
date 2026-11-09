@@ -1,146 +1,147 @@
 # miv
 
-Um editor modal pequeno em Go, inspirado nos comandos essenciais do Vim.
-Implementação independente: não executa nem incorpora o Vim em C que está
-em `../../vim/vim`. O código original serviu como referência de organização
-e comportamento; este projeto não pretende oferecer compatibilidade completa.
+A small modal editor in Go, inspired by essential Vim commands.
+This is an independent implementation: it does not run or embed the C Vim
+source in `../../vim/vim`. The original code served as a reference for
+organization and behavior; this project does not aim for full compatibility.
 
-## Rodar
+## Running
 
-Requer Go 1.23 ou superior e um terminal com suporte a UTF-8.
+Requires Go 1.23 or later and a terminal with UTF-8 support.
 
 ```sh
 make build
-./bin/miv caminho/do/arquivo
-# ou abrir vários arquivos:
+./bin/miv path/to/file
+# Open multiple files:
 ./bin/miv main.go README.md
-# ou executar sem gerar o binário em bin/:
-go run ./cmd/miv caminho/do/arquivo
+# Or run without creating a binary in bin/:
+go run ./cmd/miv path/to/file
 ```
 
-Sem argumento, começa com um buffer vazio. Use `:w nome` para salvar.
-O binário funciona sem Go instalado. Neste ambiente, o compilador foi
-baixado para `/tmp/go`: use `PATH=/tmp/go/bin:$PATH make build` enquanto
-ele não estiver no seu PATH.
+Without arguments, the editor starts with an empty buffer. Use `:w filename`
+to save. The compiled binary runs without Go installed. In this environment,
+the compiler was downloaded to `/tmp/go`: use
+`PATH=/tmp/go/bin:$PATH make build` until Go is on your PATH.
 
-## Aparência
+## Appearance
 
-A área de edição herda as cores padrão do terminal, acompanhando o tema e
-as configurações de fundo do foot. A fonte também é a do terminal.
-As barras seguem sua Waybar: fundo `#222222`, buffers inativos em `#bbbbbb`
-e buffer ativo com fundo `#333333` e texto `#eeeeee`, sem negrito.
-A barra superior mostra os buffers à esquerda, o arquivo ao centro e a
-posição à direita. A seleção usa o mesmo cinza do buffer ativo.
+The editing area inherits the terminal's default colors, following the foot
+theme and background settings. The font also comes from the terminal.
+The bars follow your Waybar configuration: background `#222222`, inactive
+buffers in `#bbbbbb`, and an active buffer with background `#333333` and
+text `#eeeeee`, without bold. The top bar shows buffers on the left, the
+file name in the center, and the cursor position on the right. Selection
+uses the same gray as the active buffer.
 
 ## Syntax highlighting
 
-Ativado automaticamente pelo nome/extensão do arquivo, usando Chroma.
-Inclui Go, Rust, C/C++, Python, JavaScript/TypeScript, shell, JSON/JSONC,
-YAML, Lua, HTML/CSS, Markdown, Makefile e outras linguagens reconhecidas
-pela biblioteca. Arquivos novos ganham destaque ao salvar com uma extensão.
+Enabled automatically by file name or extension, using Chroma.
+Supports Go, Rust, C/C++, Python, JavaScript/TypeScript, shell, JSON/JSONC,
+YAML, Lua, HTML/CSS, Markdown, Makefile, and other languages recognized
+by the library. New files gain highlighting when saved with an extension.
 
-Comentários, strings, números, palavras-chave, tipos e funções usam a
-paleta ANSI do terminal; o fundo continua sendo o do foot. A seleção visual
-mantém seu destaque cinza. Comentários e strings de várias linhas são
-reconhecidos a partir do documento inteiro, com cache enquanto o conteúdo
-não muda. Arquivos sem linguagem reconhecida ou maiores que 1 MiB usam
-texto sem destaque. Não requer LSP, plugins nem programas externos.
+Comments, strings, numbers, keywords, types, and functions use the
+terminal's ANSI palette; the background still comes from foot. Visual
+selection keeps its gray highlight. Multiline comments and strings are
+recognized from the entire document, with caching while the content stays
+unchanged. Files with no recognized language or larger than 1 MiB use
+plain text. No LSP, plugins, or external programs are required.
 
-## Comandos
+## Commands
 
-`Esc` retorna ao modo normal; `Ctrl-c` também cancela a operação atual.
-As operações aceitam contagens, por exemplo `5j`, `3dw`, `d2w` e `2dd`.
+`Esc` returns to normal mode; `Ctrl-c` also cancels the current operation.
+Operations accept counts, such as `5j`, `3dw`, `d2w`, and `2dd`.
 
-| Ação | Teclas |
+| Action | Keys |
 | --- | --- |
-| Mover | `h j k l` ou setas |
-| Palavras | `w b e` |
-| Início, primeiro caractere, fim da linha | `0 ^ $` |
-| Primeira/última linha; linha N | `gg`, `G`, `Ngg`, `NG`, `:N` |
-| Rolar 15 linhas | `Ctrl-d`, `Ctrl-u`, PageDown, PageUp |
-| Buscar caractere na linha | `f{caractere}`, `F{caractere}`, `t{caractere}`, `T{caractere}` |
-| Parêntese/colchete/chave correspondente | `%` |
-| Inserir | `i a I A o O` |
-| Apagar, alterar, copiar | `d{movimento}`, `c{movimento}`, `y{movimento}` |
-| Linha inteira | `dd cc yy` |
-| Até o fim da linha | `D C Y` |
-| Palavra e objetos de texto | `diw`, `daw`, `ciw`, `ci"`, `ci'`, `ci(`, `di[`, `da{` etc. |
-| Apagar caractere, substituir e alterar | `x`, `r{caractere}`, `s` |
-| Seleção por caractere/linha | `v`, `V`; depois `d`, `c`, `y`, `>`, `<` |
-| Colar depois/antes | `p`, `P` |
-| Desfazer/refazer | `u`, `Ctrl-r` |
-| Repetir última edição | `.` |
-| Juntar linhas; inverter maiúsculas/minúsculas | `J`, `~` |
-| Indentar/desindentar | `>>`, `<<` |
-| Busca literal para frente/trás | `/texto`, `?texto`, Enter |
-| Próxima/anterior ocorrência | `n`, `N` |
-| Buscar palavra sob o cursor | `*` |
-| Encontrar arquivo | `Ctrl-p`, `Espaço f`, `:files` |
-| Alternar buffers | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
-| Ir ao buffer N/último | `Espaço 1` a `Espaço 9`, `Espaço 0` |
-| Listar buffers | `:ls` |
-| Abrir/criar arquivo em outro buffer | `:e caminho` |
-| Salvar | `:w`, `:w caminho`, `Espaço s` |
-| Salvar e fechar buffer | `:wq` |
-| Fechar buffer; sair de todos | `:q`, `:qa` |
-| Descartar alterações ao fechar | `:q!`, `:qa!` |
+| Move | `h j k l` or arrow keys |
+| Words | `w b e` |
+| Line start, first nonblank character, line end | `0 ^ $` |
+| First/last line; line N | `gg`, `G`, `Ngg`, `NG`, `:N` |
+| Scroll 15 lines | `Ctrl-d`, `Ctrl-u`, PageDown, PageUp |
+| Find a character on the current line | `f{character}`, `F{character}`, `t{character}`, `T{character}` |
+| Matching parenthesis, bracket, or brace | `%` |
+| Insert | `i a I A o O` |
+| Delete, change, yank | `d{motion}`, `c{motion}`, `y{motion}` |
+| Entire line | `dd cc yy` |
+| To the end of the line | `D C Y` |
+| Words and text objects | `diw`, `daw`, `ciw`, `ci"`, `ci'`, `ci(`, `di[`, `da{`, etc. |
+| Delete, replace, or change a character | `x`, `r{character}`, `s` |
+| Character/line selection | `v`, `V`; then `d`, `c`, `y`, `>`, `<` |
+| Paste after/before | `p`, `P` |
+| Undo/redo | `u`, `Ctrl-r` |
+| Repeat the last edit | `.` |
+| Join lines; toggle case | `J`, `~` |
+| Indent/unindent | `>>`, `<<` |
+| Literal search forward/backward | `/text`, `?text`, Enter |
+| Next/previous occurrence | `n`, `N` |
+| Search for the word under the cursor | `*` |
+| Find a file | `Ctrl-p`, `Space f`, `:files` |
+| Switch buffers | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
+| Go to buffer N/last | `Space 1` through `Space 9`, `Space 0` |
+| List buffers | `:ls` |
+| Open/create a file in another buffer | `:e path` |
+| Save | `:w`, `:w path`, `Space s` |
+| Save and close the buffer | `:wq` |
+| Close the buffer; quit all buffers | `:q`, `:qa` |
+| Discard changes when closing | `:q!`, `:qa!` |
 
-O seletor de arquivos faz busca por subsequência: `smg` encontra
-`src/main.go`. Use setas ou `Ctrl-j`/`Ctrl-k`, Enter para abrir e Esc
-para cancelar. Procura a partir do diretório em que o editor foi iniciado,
-inclui arquivos ocultos, ignora `.git`, `node_modules`, `target`, `vendor`
-e `.cache`, e limita a listagem a 20 mil arquivos. Não segue symlinks
-durante a busca.
+The file picker uses subsequence matching: `smg` matches `src/main.go`.
+Use arrow keys or `Ctrl-j`/`Ctrl-k`, Enter to open, and Esc to cancel.
+It searches from the directory where the editor was started, includes hidden
+files, skips `.git`, `node_modules`, `target`, `vendor`, and `.cache`, and
+limits the listing to 20,000 files. It does not follow symlinks.
 
-No modo de inserção: Backspace, Delete, Enter com indentação automática,
-Tab com espaços, setas e `Ctrl-w` para apagar a palavra anterior.
-A colagem do terminal usa bracketed paste para preservar o conteúdo
-sem interpretar comandos ou acrescentar indentação.
+In insert mode: Backspace, Delete, Enter with automatic indentation,
+Tab with spaces, arrow keys, and `Ctrl-w` to delete the previous word.
+Terminal paste uses bracketed paste to preserve content without interpreting
+commands or adding indentation.
 
-## Preferências do seu workflow
+## Workflow preferences
 
-- `Y` copia até o fim da linha, conforme seu `.vimrc`.
-- YAML, shell e JSON usam indentação de 2 espaços; os outros arquivos, 4.
-- Clipboard do sistema com `wl-copy`/`wl-paste` no Wayland,
-  `xclip` ou `xsel` no X11, ou `pbcopy`/`pbpaste` no macOS.
-  Sem uma dessas ferramentas, copiar/colar continua funcionando dentro do editor.
-- Arquivos abertos ficam em buffers, com abas no topo, sem descartar alterações ao trocar.
-- Linhas longas usam rolagem horizontal; não há quebra visual automática.
+- `Y` yanks to the end of the line, matching your `.vimrc`.
+- YAML, shell, and JSON use 2-space indentation; other files use 4 spaces.
+- System clipboard support uses `wl-copy`/`wl-paste` on Wayland,
+  `xclip` or `xsel` on X11, or `pbcopy`/`pbpaste` on macOS.
+  Without these tools, copy and paste still work inside the editor.
+- Open files stay in buffers, with tags at the top, keeping changes when switching.
+- Long lines scroll horizontally; there is no visual line wrapping.
 
-O editor tem preferências fixas e não lê `.vimrc` nem a configuração do Neovim.
-Os atalhos próprios foram simplificados: salvar é `Espaço s`; o seu
-`Espaço f s` não está implementado.
+The editor has fixed preferences and does not read `.vimrc` or Neovim
+configuration. Custom shortcuts are simplified: save is `Space s`;
+`Space f s` is not implemented.
 
-## Arquivos e limites
+## Files and limits
 
-Aceita texto UTF-8 de até 16 MiB na abertura. Preserva LF/CRLF uniforme e
-a presença ou ausência de quebra de linha no fim do arquivo. Cada edição
-guarda um snapshot em memória, com limite de 200 entradas de undo por buffer;
-o foco é editar arquivos pequenos e médios.
+Opens UTF-8 text files up to 16 MiB. Preserves uniform LF/CRLF line endings
+and the presence or absence of a final newline. Each edit stores an
+in-memory snapshot, with up to 200 undo entries per buffer; the focus is
+editing small and medium files.
 
-O salvamento usa um arquivo temporário no mesmo diretório e rename.
-Preserva as permissões de um arquivo existente e o destino de symlinks
-válidos. Detecta alterações externas e colisões com arquivos existentes;
-`:w!` permite sobrescrever explicitamente. Como usa rename, não preserva
-hardlinks, proprietário de outro usuário, ACLs ou atributos estendidos.
-Não há swap, autosave nem recuperação após encerramento inesperado.
+Saving uses a temporary file in the same directory followed by rename.
+Preserves existing file permissions and valid symlink targets. Detects
+external changes and collisions with existing files; `:w!` explicitly
+overrides these checks. Because saving uses rename, it does not preserve
+hardlinks, another user's ownership, ACLs, or extended attributes.
+There are no swap files, autosave, or recovery after an unexpected exit.
 
-Ficaram fora desta versão: LSP, plugins/Vimscript/Lua, debugger,
-splits, seleção em bloco, macros, múltiplos
-registradores, regex/substituição e grafemas complexos como unidade de edição.
-Movimentos e posições usam pontos de código Unicode. A semântica de comandos
-é um subconjunto simplificado do Vim, incluindo o tratamento da última linha.
+Not included in this version: LSP, plugins/Vimscript/Lua, debugging,
+splits, block selection, macros, multiple registers, regex/substitution,
+and complex graphemes as editing units. Movements and positions use Unicode
+code points. Command behavior is a simplified subset of Vim, including
+handling of the final line.
 
-## Desenvolvimento
+## Development
 
 ```sh
 make test
 make check
-make smoke  # Python 3 e pseudoterminal Unix
+make smoke  # Python 3 and a Unix pseudoterminal
 ```
 
-O núcleo em `internal/editor` não depende do terminal. `cmd/miv` conecta
-os eventos, desenha a tela com tcell e acessa o clipboard. Os testes cobrem
-edição, histórico, arquivos, busca, seletor, renderização e resize; o smoke
-test abre o binário num PTY, edita UTF-8, cola várias linhas, salva, fecha
-e verifica a restauração do terminal.
+The core in `internal/editor` does not depend on the terminal. `cmd/miv`
+connects events, draws the screen with tcell, and accesses the clipboard.
+Tests cover editing, history, files, search, the picker, rendering, resizing,
+and syntax highlighting. The smoke test opens the binary in a PTY, edits
+UTF-8 text, pastes multiple lines, saves, closes, and verifies that terminal
+settings are restored.

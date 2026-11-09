@@ -37,9 +37,9 @@ with tempfile.TemporaryDirectory() as directory:
 
     try:
         drain(0.5)
-        os.write(master, "iOlá, mundo!".encode())
+        os.write(master, "iHello, café!".encode())
         drain(0.2)
-        os.write(master, b"\x1b[200~\ncolado sem indentacao\x1b[201~")
+        os.write(master, b"\x1b[200~\npasted without indentation\x1b[201~")
         drain(0.2)
         os.write(master, b"\x1b")
         drain(0.15)
@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory() as directory:
         drain(0.4)
         process.wait(timeout=3)
         assert process.returncode == 0, (process.returncode, output[-1000:])
-        assert path.read_text() == "Olá, mundo!\ncolado sem indentacao", path.read_bytes()
+        assert path.read_text() == "Hello, café!\npasted without indentation", path.read_bytes()
         assert termios.tcgetattr(slave) == before, "terminal flags were not restored"
         print("PTY smoke passed: UTF-8, bracketed paste, :wq, terminal restoration")
     finally:

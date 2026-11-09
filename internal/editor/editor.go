@@ -709,7 +709,7 @@ func (e *Editor) operate(op string, start, end int, line bool) {
 	e.lineRegister = line
 	if e.ClipboardWrite != nil {
 		if err := e.ClipboardWrite(e.register); err != nil {
-			e.Message = "Clipboard indisponível; cópia mantida no editor"
+			e.Message = "Clipboard unavailable; copy kept in the editor"
 		}
 	}
 	if op == "y" {
@@ -751,7 +751,7 @@ func (e *Editor) paste(after bool, n int) {
 	}
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	if len(text)*n > maxFileSize {
-		e.Message = "Colagem excede o limite de 16 MiB"
+		e.Message = "Paste exceeds the 16 MiB limit"
 		return
 	}
 	p := b.Cursor
@@ -878,7 +878,7 @@ func (e *Editor) insertKey(key string) {
 }
 func (e *Editor) InsertPaste(text string) {
 	if e.Mode != Insert {
-		e.Message = "Entre no modo INSERT para colar do terminal"
+		e.Message = "Enter INSERT mode to paste from the terminal"
 		return
 	}
 	e.Handle("<Paste>" + strings.ReplaceAll(text, "\r\n", "\n"))
@@ -922,7 +922,7 @@ func (e *Editor) Execute(cmd string) {
 			e.Message = err.Error()
 			return
 		}
-		e.Message = fmt.Sprintf("Salvo: %s", b.Path)
+		e.Message = fmt.Sprintf("Saved: %s", b.Path)
 		if name == "wq" || name == "x" {
 			e.closeBuffer(force)
 		}
@@ -931,7 +931,7 @@ func (e *Editor) Execute(cmd string) {
 	case "qa", "qall":
 		for _, b := range e.Buffers {
 			if b.Dirty() && !force {
-				e.Message = "Há alterações não salvas; use :qa! para descartar"
+				e.Message = "Unsaved changes; use :qa! to discard them"
 				return
 			}
 		}
@@ -940,7 +940,7 @@ func (e *Editor) Execute(cmd string) {
 		if arg != "" {
 			e.openPath(arg)
 		} else {
-			e.Message = "Use :e caminho"
+			e.Message = "Use :e path"
 		}
 	case "bn", "bnext", "tabnext":
 		e.nextBuffer(1)
@@ -951,7 +951,7 @@ func (e *Editor) Execute(cmd string) {
 		if err == nil && n > 0 && n <= len(e.Buffers) {
 			e.Active = n - 1
 		} else {
-			e.Message = "Buffer inválido"
+			e.Message = "Invalid buffer"
 		}
 	case "ls", "buffers":
 		var names []string
@@ -966,18 +966,18 @@ func (e *Editor) Execute(cmd string) {
 	case "files":
 		e.StartPicker()
 	case "help", "h":
-		e.Message = "hjkl wbe  i/a/o  v/V  d/c/y+movimento  p  u/Ctrl-r  / n/N  :w :q  Ctrl-p  gt/gT"
+		e.Message = "hjkl wbe  i/a/o  v/V  d/c/y+motion  p  u/Ctrl-r  / n/N  :w :q  Ctrl-p  gt/gT"
 	default:
 		if n, err := strconv.Atoi(name); err == nil && n > 0 {
 			b.Cursor = b.Offset(n-1, 0)
 		} else {
-			e.Message = "Comando não suportado: " + cmd
+			e.Message = "Unsupported command: " + cmd
 		}
 	}
 }
 func (e *Editor) closeBuffer(force bool) {
 	if e.Buffer().Dirty() && !force {
-		e.Message = "Alterações não salvas; use :w ou :q! para descartar"
+		e.Message = "Unsaved changes; use :w to save or :q! to discard them"
 		return
 	}
 	if len(e.Buffers) == 1 {

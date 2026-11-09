@@ -14,7 +14,7 @@ func (e *Editor) find(pattern string, dir int) {
 	b := e.Buffer()
 	needle := []rune(pattern)
 	if len(needle) > len(b.Text) {
-		e.Message = "Não encontrado: " + pattern
+		e.Message = "Not found: " + pattern
 		return
 	}
 	if dir == 0 {
@@ -31,7 +31,7 @@ func (e *Editor) find(pattern string, dir int) {
 			return
 		}
 	}
-	e.Message = "Não encontrado: " + pattern
+	e.Message = "Not found: " + pattern
 }
 func (e *Editor) promptKey(key string) {
 	switch key {
