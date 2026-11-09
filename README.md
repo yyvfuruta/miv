@@ -88,6 +88,8 @@ Operations accept counts, such as `5j`, `3dw`, `d2w`, and `2dd`.
 | Switch projects | `Space p p`, `:projects` |
 | Switch workspace | `Space Tab 1` through `Space Tab 9` |
 | List/select existing workspaces | `:workspaces`, `:ws` |
+| Create and switch to a workspace | `:wsnew [N]`, `Space Tab n` |
+| Delete a workspace | `:wsdelete [N]`, `Space Tab d` |
 | Switch buffers | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
 | Go to buffer N/last | `Space 1` through `Space 9`, `Space 0` |
 | List buffers | `:ls` |
@@ -147,6 +149,8 @@ The leader is Space. Press these keys in sequence in normal mode:
 | `SPC f f` or `SPC p f` | Find a file in the current project |
 | `SPC p p` | Choose a project, then find a file in it |
 | `SPC TAB 1`–`SPC TAB 9` | Switch to workspace 1–9 |
+| `SPC TAB n` | Create and switch to the first unused workspace |
+| `SPC TAB d` | Delete the current workspace |
 
 `SPC f` is now a prefix; press a second `f` to open the file picker.
 `Ctrl-p` still opens the picker directly. Esc cancels an unfinished sequence.
@@ -173,6 +177,17 @@ changes in any of its buffers. Type to filter, use arrow keys or
 
 `SPC p f` searches within the current workspace's project directory, using
 the same file picker as `SPC f f` and `Ctrl-p`.
+
+`:wsnew` creates the first unused workspace and switches to it, inheriting
+the current project directory. `:wsnew N` chooses a specific unused number
+from 1 to 9. Creating an existing workspace is refused; use its switch binding
+instead. If all nine numbers are in use, creation reports that limit.
+
+`:wsdelete` deletes the current workspace and switches to another existing
+one. `:wsdelete N` deletes a specific workspace. Unsaved changes prevent
+deletion; `:wsdelete!` or `:wsdelete! N` explicitly discards those edits.
+Deleting a workspace closes its buffers without removing files from disk.
+The last workspace cannot be deleted. Deleted numbers can be reused.
 
 Switching workspaces keeps unsaved changes. Closing the last buffer with
 `:q` moves to another workspace that still has files; `:qa` checks all

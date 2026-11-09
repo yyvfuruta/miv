@@ -94,3 +94,75 @@ func (e *Editor) StartWorkspaces() {
 	e.PickingProjects, e.PickingWorkspaces = false, true
 	e.filterFiles()
 }
+
+func (e *Editor) workspaceExists(id int) bool {
+	if id == e.Workspace {
+		return true
+	}
+	_, exists := e.workspaces[id]
+	return exists
+}
+
+// CreateWorkspace chooses the first unused number when id is zero.
+func (e *Editor) CreateWorkspace(id int) {
+	if id == 0 {
+		for candidate := 1; candidate <= 9; candidate++ {
+			if !e.workspaceExists(candidate) {
+				id = candidate
+				break
+			}
+		}
+		if id == 0 {
+			e.Message = "All 9 workspaces are in use"
+			return
+		}
+	}
+	if id < 1 || id > 9 {
+		e.Message = "Workspace number must be between 1 and 9"
+		return
+	}
+	if e.workspaceExists(id) {
+		e.Message = fmt.Sprintf("Workspace %d already exists", id)
+		return
+	}
+	e.SwitchWorkspace(id)
+	e.Message = fmt.Sprintf("Created workspace %d", id)
+}
+
+func (e *Editor) DeleteWorkspace(id int, force bool) {
+	if id == 0 {
+		id = e.Workspace
+	}
+	if id < 1 || id > 9 || !e.workspaceExists(id) {
+		e.Message = fmt.Sprintf("Workspace %d does not exist", id)
+		return
+	}
+	next := 0
+	for candidate := 1; candidate <= 9; candidate++ {
+		if candidate != id && e.workspaceExists(candidate) {
+			next = candidate
+			break
+		}
+	}
+	if next == 0 {
+		e.Message = "Cannot delete the last workspace"
+		return
+	}
+	buffers := e.workspaces[id].buffers
+	if id == e.Workspace {
+		buffers = e.Buffers
+	}
+	if !force {
+		for _, b := range buffers {
+			if b.Dirty() {
+				e.Message = fmt.Sprintf("Workspace %d has unsaved changes; use :wsdelete! %d to discard them", id, id)
+				return
+			}
+		}
+	}
+	if id == e.Workspace {
+		e.SwitchWorkspace(next)
+	}
+	delete(e.workspaces, id)
+	e.Message = fmt.Sprintf("Deleted workspace %d", id)
+}

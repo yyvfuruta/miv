@@ -303,3 +303,101 @@ func TestProjectFindBindingAcrossWorkspaces(t *testing.T) {
 	e.Handle("<Esc>")
 	assertText(t, e, "unsaved")
 }
+
+func TestCreateDeleteWorkspaces(t *testing.T) {
+	e := fixture("first")
+	e.Root = t.TempDir()
+	root := e.Root
+	first := e.Buffer()
+	workspaceKeys(e, "n")
+	if e.Workspace != 2 || e.Root != root || e.Buffer() == first {
+		t.Fatal("leader creation did not create a fresh workspace")
+	}
+	e.Execute("wsnew 5")
+	if e.Workspace != 5 {
+		t.Fatal("explicit creation failed")
+	}
+	e.Execute("wsnew 2")
+	if e.Workspace != 5 || !strings.Contains(e.Message, "already exists") {
+		t.Fatal("existing workspace was replaced")
+	}
+	workspaceKeys(e, "d")
+	if e.Workspace != 1 || e.workspaceExists(5) || e.Buffer() != first {
+		t.Fatal("active deletion did not restore another workspace")
+	}
+	e.Execute("wsdelete 2")
+	if e.Workspace != 1 || e.workspaceExists(2) {
+		t.Fatal("inactive deletion changed the active workspace")
+	}
+	e.Execute("wsdelete!")
+	if !e.workspaceExists(1) || !strings.Contains(e.Message, "last workspace") {
+		t.Fatal("last workspace was deleted")
+	}
+	e.Execute("wsnew")
+	if e.Workspace != 2 {
+		t.Fatal("deleted workspace number was not reused")
+	}
+	e.Execute("workspaces")
+	if len(e.Matches) != 2 {
+		t.Fatal("workspace list includes deleted workspaces")
+	}
+	e.Handle("<Esc>")
+}
+
+func TestWorkspaceDeletionProtectsAllBuffers(t *testing.T) {
+	e := fixture("clean")
+	first := e.Buffer()
+	e.CreateWorkspace(2)
+	e.Buffers = append(e.Buffers, NewBuffer())
+	e.Active = 1
+	keys(e, "ichanged")
+	e.Handle("<Esc>")
+	e.Active = 0
+	e.Execute("wsdelete")
+	if e.Workspace != 2 || !strings.Contains(e.Message, "unsaved changes") {
+		t.Fatal("dirty inactive buffer was discarded")
+	}
+	e.SwitchWorkspace(1)
+	e.Execute("wsdelete 2")
+	if !e.workspaceExists(2) {
+		t.Fatal("dirty hidden workspace was discarded")
+	}
+	e.Execute("wsdelete! 2")
+	if e.workspaceExists(2) || e.Buffer() != first || e.Quit {
+		t.Fatal("forced deletion affected another workspace")
+	}
+	e.CreateWorkspace(2)
+	keys(e, "inew edits")
+	e.Handle("<Esc>")
+	e.Execute("wsdelete!")
+	if e.Workspace != 1 || e.workspaceExists(2) {
+		t.Fatal("forced active deletion failed")
+	}
+	assertText(t, e, "clean")
+}
+
+func TestWorkspaceCreationLimitsAndInvalidIDs(t *testing.T) {
+	e := fixture("")
+	for id := 2; id <= 9; id++ {
+		e.CreateWorkspace(id)
+	}
+	e.Execute("wsnew")
+	if e.Workspace != 9 || !strings.Contains(e.Message, "All 9") {
+		t.Fatal("workspace capacity was not enforced")
+	}
+	for _, command := range []string{"wsnew 0", "wsnew 10", "wsnew nope", "wsdelete -1", "wsdelete 10", "wsdelete 1 2"} {
+		e.Execute(command)
+		if e.Workspace != 9 || !strings.Contains(e.Message, "between 1 and 9") {
+			t.Fatalf("invalid command accepted: %s", command)
+		}
+	}
+	e.Execute("wsdelete 3")
+	e.Execute("wsdelete 3")
+	if !strings.Contains(e.Message, "does not exist") {
+		t.Fatal("missing workspace deletion was not reported")
+	}
+	e.CreateWorkspace(0)
+	if e.Workspace != 3 {
+		t.Fatal("creation did not use first available slot")
+	}
+}

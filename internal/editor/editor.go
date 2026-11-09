@@ -376,6 +376,12 @@ func (e *Editor) pendingKey(key string) {
 				e.StartPicker()
 			}
 		case " <Tab>":
+			if key == "n" {
+				e.CreateWorkspace(0)
+			}
+			if key == "d" {
+				e.DeleteWorkspace(0, false)
+			}
 			if len(key) == 1 && key >= "1" && key <= "9" {
 				id, _ := strconv.Atoi(key)
 				e.SwitchWorkspace(id)
@@ -1035,6 +1041,21 @@ func (e *Editor) Execute(cmd string) {
 			names = append(names, fmt.Sprintf("%d:%s%s", i+1, filepath.Base(b.Path), mark))
 		}
 		e.Message = strings.Join(names, "  ")
+	case "wsnew", "wsdelete":
+		id := 0
+		if arg != "" {
+			var err error
+			id, err = strconv.Atoi(arg)
+			if err != nil || id < 1 || id > 9 {
+				e.Message = "Workspace number must be between 1 and 9"
+				return
+			}
+		}
+		if name == "wsnew" {
+			e.CreateWorkspace(id)
+		} else {
+			e.DeleteWorkspace(id, force)
+		}
 	case "workspaces", "ws":
 		e.StartWorkspaces()
 	case "projects":
