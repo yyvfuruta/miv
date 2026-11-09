@@ -197,3 +197,109 @@ func TestShellCommandDispatch(t *testing.T) {
 		t.Fatal("shell error not reported")
 	}
 }
+
+func TestWorkspaceListUsesLiveState(t *testing.T) {
+	e := fixture("")
+	firstRoot := t.TempDir()
+	e.Root = firstRoot
+	workspaceKeys(e, "9")
+	e.Root = t.TempDir()
+	workspaceKeys(e, "1")
+	// The saved W1 entry still has one buffer; the active workspace now has two.
+	e.Buffers = append(e.Buffers, NewBuffer())
+	e.Active = 1
+	keys(e, "iedited")
+	e.Handle("<Esc>")
+	current := e.Buffer()
+	keys(e, ":workspaces")
+	e.Handle("<Enter>")
+	if e.Mode != Picker || !e.PickingWorkspaces || e.PickingProjects {
+		t.Fatal("workspace list did not open")
+	}
+	if len(e.Matches) != 2 || !strings.HasPrefix(e.Matches[0], "W1 *+") || !strings.HasPrefix(e.Matches[1], "W9 ") {
+		t.Fatalf("workspace order/markers: %v", e.Matches)
+	}
+	if !strings.Contains(e.Matches[0], "2 buffers") || !strings.Contains(e.Matches[0], firstRoot) {
+		t.Fatalf("list uses stale workspace state: %v", e.Matches)
+	}
+	e.Handle("<Esc>")
+	if e.Workspace != 1 || e.Buffer() != current || e.PickingWorkspaces {
+		t.Fatal("cancel changed workspace")
+	}
+	assertText(t, e, "edited")
+	e.Execute("ws")
+	keys(e, "W9")
+	if len(e.Matches) == 0 || !strings.HasPrefix(e.Matches[0], "W9 ") {
+		t.Fatalf("workspace filter ranking: %v", e.Matches)
+	}
+	e.Handle("<Enter>")
+	if e.Workspace != 9 || e.Mode != Normal || e.PickingWorkspaces {
+		t.Fatal("selection did not switch workspace")
+	}
+	e.Execute("workspaces")
+	if !strings.HasPrefix(e.Matches[0], "W1 +") || !strings.HasPrefix(e.Matches[1], "W9 *") {
+		t.Fatalf("saved/current markers: %v", e.Matches)
+	}
+	e.Handle("<Enter>")
+	if e.Buffer() != current {
+		t.Fatal("selection lost original buffer")
+	}
+	assertText(t, e, "edited")
+}
+
+func TestWorkspaceListCurrentAndNavigation(t *testing.T) {
+	e := fixture("")
+	e.Execute("ws")
+	if len(e.Matches) != 1 || !strings.Contains(e.Matches[0], "1 buffer") {
+		t.Fatalf("initial list: %v", e.Matches)
+	}
+	e.Handle("<Enter>")
+	if e.Mode != Normal || e.Workspace != 1 || e.PickingWorkspaces {
+		t.Fatal("selecting current workspace left picker active")
+	}
+	workspaceKeys(e, "3")
+	workspaceKeys(e, "1")
+	e.Execute("workspaces")
+	e.Handle("<Down>")
+	e.Handle("<Enter>")
+	if e.Workspace != 3 {
+		t.Fatal("workspace keyboard selection failed")
+	}
+	e.Execute("ws")
+	keys(e, "no such workspace")
+	if len(e.Matches) != 0 {
+		t.Fatal("unexpected matches")
+	}
+	e.Handle("<Enter>")
+	if e.Mode != Normal || e.Workspace != 3 || e.PickingWorkspaces {
+		t.Fatal("empty result changed workspace or left the picker active")
+	}
+}
+
+func TestProjectFindBindingAcrossWorkspaces(t *testing.T) {
+	root1, root2 := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(root1, "first.txt"), []byte("first"), 0644)
+	os.WriteFile(filepath.Join(root2, "second.txt"), []byte("second"), 0644)
+	e := fixture("unsaved")
+	e.Root = root1
+	workspaceKeys(e, "2")
+	e.Root = root2
+	// Ensure opening a file picker clears a previous workspace-picker state.
+	e.Execute("ws")
+	e.Handle("<Esc>")
+	keys(e, " pf")
+	if e.Mode != Picker || e.PickingProjects || e.PickingWorkspaces || len(e.Matches) != 1 || e.Matches[0] != "second.txt" {
+		t.Fatalf("wrong project files: %v", e.Matches)
+	}
+	e.Handle("<Enter>")
+	if e.Buffer().Path != filepath.Join(root2, "second.txt") {
+		t.Fatal("wrong project file opened")
+	}
+	workspaceKeys(e, "1")
+	keys(e, " pf")
+	if len(e.Matches) != 1 || e.Matches[0] != "first.txt" {
+		t.Fatalf("workspace project was not restored: %v", e.Matches)
+	}
+	e.Handle("<Esc>")
+	assertText(t, e, "unsaved")
+}

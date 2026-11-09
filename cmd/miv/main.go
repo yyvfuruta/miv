@@ -298,6 +298,8 @@ func (v *view) draw() {
 		kind := "Files"
 		if e.PickingProjects {
 			kind = "Projects"
+		} else if e.PickingWorkspaces {
+			kind = "Workspaces"
 		}
 		bottom = kind + " > " + e.Prompt
 		fill(s, 0, w, bar)

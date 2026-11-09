@@ -76,9 +76,10 @@ Operations accept counts, such as `5j`, `3dw`, `d2w`, and `2dd`.
 | Literal search forward/backward | `/text`, `?text`, Enter |
 | Next/previous occurrence | `n`, `N` |
 | Search for the word under the cursor | `*` |
-| Find a file | `Ctrl-p`, `Space f f`, `:files` |
+| Find a file | `Ctrl-p`, `Space f f`, `Space p f`, `:files` |
 | Switch projects | `Space p p`, `:projects` |
 | Switch workspace | `Space Tab 1` through `Space Tab 9` |
+| List/select existing workspaces | `:workspaces`, `:ws` |
 | Switch buffers | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
 | Go to buffer N/last | `Space 1` through `Space 9`, `Space 0` |
 | List buffers | `:ls` |
@@ -135,7 +136,7 @@ The leader is Space. Press these keys in sequence in normal mode:
 | Binding | Action |
 | --- | --- |
 | `SPC f s` | Save the current file |
-| `SPC f f` | Find a file in the current project |
+| `SPC f f` or `SPC p f` | Find a file in the current project |
 | `SPC p p` | Choose a project, then find a file in it |
 | `SPC TAB 1`–`SPC TAB 9` | Switch to workspace 1–9 |
 
@@ -155,6 +156,15 @@ cursor positions, undo history, and project directory for this session.
 The `W1`–`W9` badge in the top bar identifies the active workspace; numbered
 buffer tags follow it. Existing `Space 1`–`Space 9` bindings still select
 buffers within that workspace.
+
+`:workspaces` (or `:ws`) opens a list of workspaces created in this session,
+sorted by number. Each row shows the workspace number, buffer count, and
+project directory. `*` marks the current workspace and `+` marks unsaved
+changes in any of its buffers. Type to filter, use arrow keys or
+`Ctrl-j`/`Ctrl-k` to select a row, and press Enter to switch; Esc cancels.
+
+`SPC p f` searches within the current workspace's project directory, using
+the same file picker as `SPC f f` and `Ctrl-p`.
 
 Switching workspaces keeps unsaved changes. Closing the last buffer with
 `:q` moves to another workspace that still has files; `:qa` checks all

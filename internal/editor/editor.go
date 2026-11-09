@@ -50,6 +50,8 @@ type Editor struct {
 	Workspace                   int
 	workspaces                  map[int]workspace
 	PickingProjects             bool
+	PickingWorkspaces           bool
+	workspaceEntries            map[string]int
 }
 
 func New(paths []string) (*Editor, error) {
@@ -346,6 +348,9 @@ func (e *Editor) pendingKey(key string) {
 		case " p":
 			if key == "p" {
 				e.StartProjects()
+			}
+			if key == "f" {
+				e.StartPicker()
 			}
 		case " <Tab>":
 			if len(key) == 1 && key >= "1" && key <= "9" {
@@ -1007,12 +1012,14 @@ func (e *Editor) Execute(cmd string) {
 			names = append(names, fmt.Sprintf("%d:%s%s", i+1, filepath.Base(b.Path), mark))
 		}
 		e.Message = strings.Join(names, "  ")
+	case "workspaces", "ws":
+		e.StartWorkspaces()
 	case "projects":
 		e.StartProjects()
 	case "files":
 		e.StartPicker()
 	case "help", "h":
-		e.Message = "SPC f s:save  f f:files  p p:projects  TAB 1-9:workspace  :!cmd :term  :w :q"
+		e.Message = "SPC f s:save  p f:files  p p:projects  TAB 1-9:workspace  :workspaces :!cmd :term"
 	default:
 		if n, err := strconv.Atoi(name); err == nil && n > 0 {
 			b.Cursor = b.Offset(n-1, 0)

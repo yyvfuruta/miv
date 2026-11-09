@@ -41,6 +41,8 @@ func (e *Editor) promptKey(key string) {
 		}
 		e.Mode = Normal
 		e.Prompt = ""
+		e.PickingProjects, e.PickingWorkspaces = false, false
+		e.workspaceEntries = nil
 		e.reset()
 	case "<Enter>":
 		mode, prompt := e.Mode, e.Prompt
@@ -58,12 +60,21 @@ func (e *Editor) promptKey(key string) {
 			e.find(e.search, e.searchDir)
 		case Picker:
 			if len(e.Matches) > 0 {
-				if e.PickingProjects {
+				if e.PickingWorkspaces {
+					id := e.workspaceEntries[e.Matches[e.PickIndex]]
+					e.PickingWorkspaces = false
+					e.workspaceEntries = nil
+					e.SwitchWorkspace(id)
+				} else if e.PickingProjects {
 					e.Root = e.Matches[e.PickIndex]
 					e.StartPicker()
 				} else {
 					e.openPath(filepath.Join(e.Root, e.Matches[e.PickIndex]))
 				}
+			}
+			if e.Mode != Picker {
+				e.PickingProjects, e.PickingWorkspaces = false, false
+				e.workspaceEntries = nil
 			}
 		}
 	case "<Backspace>":
@@ -92,7 +103,8 @@ func (e *Editor) promptKey(key string) {
 	}
 }
 func (e *Editor) StartPicker() {
-	e.PickingProjects = false
+	e.PickingProjects, e.PickingWorkspaces = false, false
+	e.workspaceEntries = nil
 	e.Files, e.Matches = nil, nil
 	e.Prompt = ""
 	e.PickIndex = 0
@@ -156,6 +168,11 @@ func fuzzy(path, query string) (int, bool) {
 	return score + len(p), true
 }
 func (e *Editor) filterFiles() {
+	if e.PickingWorkspaces && e.Prompt == "" {
+		e.Matches = append([]string(nil), e.Files...)
+		e.PickIndex = 0
+		return
+	}
 	type match struct {
 		path  string
 		score int

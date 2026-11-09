@@ -87,6 +87,7 @@ func (e *Editor) StartProjects() {
 	}
 	sort.Strings(e.Files)
 	e.Mode, e.Prompt = Picker, ""
-	e.PickingProjects = true
+	e.PickingProjects, e.PickingWorkspaces = true, false
+	e.workspaceEntries = nil
 	e.filterFiles()
 }

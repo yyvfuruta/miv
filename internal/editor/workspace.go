@@ -1,6 +1,9 @@
 package editor
 
-import "path/filepath"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 type workspace struct {
 	buffers []*Buffer
@@ -31,7 +34,8 @@ func (e *Editor) SwitchWorkspace(id int) {
 	e.Buffers, e.Active, e.Root = next.buffers, next.active, next.root
 	e.Workspace = id
 	e.Mode, e.Prompt = Normal, ""
-	e.PickingProjects = false
+	e.PickingProjects, e.PickingWorkspaces = false, false
+	e.workspaceEntries = nil
 	e.desiredCol = -1
 	e.reset()
 }
@@ -51,4 +55,42 @@ func (e *Editor) projectPath(path string) string {
 		return path
 	}
 	return filepath.Join(e.Root, path)
+}
+
+// StartWorkspaces lists only workspaces created in this session. Read the active
+// workspace directly: its saved entry may still refer to an older buffer list.
+func (e *Editor) StartWorkspaces() {
+	e.Files = nil
+	e.workspaceEntries = make(map[string]int)
+	for id := 1; id <= 9; id++ {
+		w, exists := e.workspaces[id]
+		mark := ""
+		if id == e.Workspace {
+			w = workspace{e.Buffers, e.Active, e.Root}
+			exists, mark = true, "*"
+		}
+		if !exists {
+			continue
+		}
+		for _, b := range w.buffers {
+			if b.Dirty() {
+				mark += "+"
+				break
+			}
+		}
+		root, err := filepath.Abs(w.root)
+		if err != nil {
+			root = w.root
+		}
+		unit := "buffers"
+		if len(w.buffers) == 1 {
+			unit = "buffer"
+		}
+		entry := fmt.Sprintf("W%d %-2s | %d %s | %s", id, mark, len(w.buffers), unit, root)
+		e.Files = append(e.Files, entry)
+		e.workspaceEntries[entry] = id
+	}
+	e.Mode, e.Prompt = Picker, ""
+	e.PickingProjects, e.PickingWorkspaces = false, true
+	e.filterFiles()
 }
