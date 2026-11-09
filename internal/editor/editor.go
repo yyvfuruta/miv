@@ -199,8 +199,9 @@ func (e *Editor) handle(key string) {
 		e.Mode = Insert
 	case "o", "O":
 		p := b.LineEnd(b.Cursor)
-		indent := e.indentation(b.Cursor)
+		indent := e.newLineIndent(p)
 		if key == "O" {
+			indent = e.indentation(b.Cursor)
 			p = b.LineStart(b.Cursor)
 			b.Replace(p, p, indent+"\n")
 			b.Cursor = p + len([]rune(indent))
@@ -836,8 +837,10 @@ func (e *Editor) insertKey(key string) {
 			b.Cursor = p
 		}
 	case "<Enter>", "<C-j>":
-		indent := e.indentation(p)
+		indent := e.newLineIndent(p)
 		b.Replace(p, p, "\n"+indent)
+	case "<C-d>", "<S-Tab>":
+		e.unindentInsert()
 	case "<Tab>":
 		_, col := b.RowCol()
 		b.Replace(p, p, strings.Repeat(" ", e.tabSize()-col%e.tabSize()))

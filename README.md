@@ -94,8 +94,38 @@ limits the listing to 20,000 files. It does not follow symlinks.
 
 In insert mode: Backspace, Delete, Enter with automatic indentation,
 Tab with spaces, arrow keys, and `Ctrl-w` to delete the previous word.
+`Ctrl-d` or `Shift-Tab` removes one indentation level in insert mode.
 Terminal paste uses bracketed paste to preserve content without interpreting
 commands or adding indentation.
+
+## Automatic indentation
+
+Enter and `o` copy the current indentation. For `.yaml` and `.yml` files,
+they also add two spaces after an empty mapping key and align fields in
+list mappings. For example, Enter after each colon prepares the indentation
+shown here:
+
+```yaml
+services:
+  api:
+    port: 8080
+```
+
+After `- name: api`, the next line is aligned for another field:
+
+```yaml
+- name: api
+  port: 8080
+```
+
+Literal/folded block headers (`|`, `>`, and their modifiers) also indent
+content. Colons inside quotes, comments, and existing block scalar content
+do not create extra indentation. `O` copies the current indentation when
+opening a line above. Use `Ctrl-d` or `Shift-Tab` in insert mode to move
+back a level, or `>>`/`<<` in normal mode to adjust existing lines.
+
+This is a typing aid based on common YAML patterns, not a YAML formatter
+or parser. It does not insert list markers or reformat pasted text.
 
 ## Workflow preferences
 

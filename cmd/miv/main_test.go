@@ -47,7 +47,7 @@ func TestTerminalKeyMapping(t *testing.T) {
 	for _, test := range []struct {
 		key  tcell.Key
 		want string
-	}{{tcell.KeyEscape, "<Esc>"}, {tcell.KeyBackspace2, "<Backspace>"}, {tcell.KeyCtrlR, "<C-r>"}, {tcell.KeyCtrlP, "<C-p>"}, {tcell.KeyLeft, "<Left>"}} {
+	}{{tcell.KeyEscape, "<Esc>"}, {tcell.KeyBackspace2, "<Backspace>"}, {tcell.KeyCtrlR, "<C-r>"}, {tcell.KeyCtrlP, "<C-p>"}, {tcell.KeyLeft, "<Left>"}, {tcell.KeyBacktab, "<S-Tab>"}} {
 		if got := keyName(tcell.NewEventKey(test.key, 0, tcell.ModNone)); got != test.want {
 			t.Fatalf("key = %q, want %q", got, test.want)
 		}

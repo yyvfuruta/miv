@@ -88,7 +88,7 @@ func keyName(ev *tcell.EventKey) string {
 	if ev.Key() == tcell.KeyRune {
 		return string(ev.Rune())
 	}
-	keys := map[tcell.Key]string{tcell.KeyEscape: "<Esc>", tcell.KeyEnter: "<Enter>", tcell.KeyBackspace: "<Backspace>", tcell.KeyBackspace2: "<Backspace>", tcell.KeyDelete: "<Delete>", tcell.KeyTab: "<Tab>", tcell.KeyLeft: "<Left>", tcell.KeyRight: "<Right>", tcell.KeyUp: "<Up>", tcell.KeyDown: "<Down>", tcell.KeyHome: "<Home>", tcell.KeyEnd: "<End>", tcell.KeyPgUp: "<PageUp>", tcell.KeyPgDn: "<PageDown>", tcell.KeyCtrlR: "<C-r>", tcell.KeyCtrlP: "<C-p>", tcell.KeyCtrlD: "<C-d>", tcell.KeyCtrlU: "<C-u>", tcell.KeyCtrlW: "<C-w>", tcell.KeyCtrlK: "<C-k>"}
+	keys := map[tcell.Key]string{tcell.KeyEscape: "<Esc>", tcell.KeyEnter: "<Enter>", tcell.KeyBackspace: "<Backspace>", tcell.KeyBackspace2: "<Backspace>", tcell.KeyDelete: "<Delete>", tcell.KeyTab: "<Tab>", tcell.KeyBacktab: "<S-Tab>", tcell.KeyLeft: "<Left>", tcell.KeyRight: "<Right>", tcell.KeyUp: "<Up>", tcell.KeyDown: "<Down>", tcell.KeyHome: "<Home>", tcell.KeyEnd: "<End>", tcell.KeyPgUp: "<PageUp>", tcell.KeyPgDn: "<PageDown>", tcell.KeyCtrlR: "<C-r>", tcell.KeyCtrlP: "<C-p>", tcell.KeyCtrlD: "<C-d>", tcell.KeyCtrlU: "<C-u>", tcell.KeyCtrlW: "<C-w>", tcell.KeyCtrlK: "<C-k>"}
 	if k, ok := keys[ev.Key()]; ok {
 		return k
 	}
