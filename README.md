@@ -29,6 +29,7 @@ file picker. Use a terminal with UTF-8 support.
 | Move | `h j k l`, arrows, `w b e`, `0 ^ $`, `gg G` |
 | Insert | `i a I A o O` |
 | Select characters / lines | `v` / `V` |
+| Reflow selected lines to 80 columns | `gq` / `gw` in visual mode |
 | Delete / change / yank | `d{motion}` / `c{motion}` / `y{motion}` |
 | Delete / change / yank a line | `dd` / `cc` / `yy` |
 | Paste after / before | `p` / `P` |
@@ -41,6 +42,11 @@ Text objects include words, quotes, and brackets: `ciw`, `ci"`, `di(`.
 `Y` yanks to the end of the line. Syntax highlighting follows the file type;
 colors and the font follow the terminal. Enter preserves indentation, with
 YAML-aware indentation. Use `Ctrl-d` or `Shift-Tab` in insert mode to unindent.
+Select text with `v` or whole lines with `V`, then press `gq` to reflow the
+selected lines. Blank lines separate paragraphs; each paragraph keeps its
+first line's indentation. Words are kept intact. `gw` formats the same way
+and keeps the cursor on its original text; `gq` moves it to the first nonblank
+character of the last formatted line. Use `u` to undo the entire formatting.
 
 ## Files, projects, and workspaces
 

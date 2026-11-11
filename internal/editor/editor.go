@@ -415,6 +415,9 @@ func (e *Editor) pendingKey(key string) {
 		return
 	}
 	if pending == "g" {
+		if (key == "q" || key == "w") && (e.Mode == Visual || e.Mode == VisualLine) {
+			e.formatSelection(key == "w")
+		}
 		if key == "g" {
 			b.Cursor = b.Offset(n-1, 0)
 		}
