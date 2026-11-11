@@ -107,31 +107,57 @@ Completion, rename, code actions, and automatic diagnostics are not implemented.
 
 ## Files, projects, and workspaces
 
-`SPC` means Space; press leader sequences in normal mode.
+`SPC` means Space; press leader sequences in normal mode. Pressing `SPC`
+opens a key-hint panel with the available continuations. It updates as you
+type a group such as `b`, `w`, or `TAB`; Esc cancels the sequence.
+
+The top bar shows workspaces. Files are buffers displayed in the current
+window, without a separate file-tab bar. Finding a file changes the buffer
+shown in that window; the previous buffer and its unsaved edits remain in the
+workspace. Use the buffer picker to return to it. A split explicitly creates
+another window and keeps its own cursor and scroll position.
 
 | Action | Keys or command |
 | --- | --- |
 | Save | `SPC f s` |
-| Find a project file | `SPC p f`, `SPC f f`, `Ctrl-p` |
-| Choose a nearby Git project | `SPC p p` |
+| Find a project file | `SPC p f`, `SPC f f`, `SPC SPC`, `SPC .`, `Ctrl-p` |
+| Switch to a nearby Git project workspace | `SPC p p` |
 | Open or create a file | `:e path` |
-| Switch buffers | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
-| List buffers | `:ls` |
+| Choose a buffer in the current workspace | `SPC b b`, `SPC ,`, `:bufferlist` |
+| Next / previous buffer | `SPC b n` / `SPC b p`, `SPC b ]` / `SPC b [` |
+| Switch buffers with Vim commands | `gt`, `gT`, `:bn`, `:bp`, `:b N` |
+| Close the current buffer | `SPC b d`, `SPC b k`, `:bd` |
+| List buffer numbers | `:ls` |
 | Split below / right | `SPC w s` / `SPC w v`, `:split` / `:vsplit` |
 | Focus left / down / up / right window | `SPC w h` / `SPC w j` / `SPC w k` / `SPC w l` |
-| Close the current file window | `SPC w q`, `:close` |
-| Switch workspace | `SPC TAB 1` through `SPC TAB 9` |
-| List and select workspaces | `:workspaces` or `:ws` |
+| Close the current file window | `SPC w d`, `SPC w q`, `:close` |
+| Switch workspace | `SPC TAB 1` through `SPC TAB 9`; `SPC TAB 0` selects the last |
+| Next / previous workspace | `SPC TAB ]` / `SPC TAB [` |
+| Return to the last visited workspace | `SPC TAB` followed by a backtick |
+| List and select workspaces | `SPC TAB .`, `SPC TAB TAB`, `:workspaces`, `:ws` |
 | Create a workspace | `SPC TAB n` or `:wsnew [N]` |
+| Rename the current workspace | `SPC TAB r` or `:wsrename name` |
 | Delete a workspace | `SPC TAB d` or `:wsdelete [N]` |
 
 Pickers support fuzzy filtering, arrows or `Ctrl-j`/`Ctrl-k`, Enter to select,
-and Esc to cancel. Workspace lists mark the current workspace with `*` and
-unsaved edits with `+`. Relative file paths use the current project directory.
-Workspaces keep their buffers, split layout, and project directory for the
-current session. Each file window keeps its own cursor and scroll position.
-Closing a split keeps its buffer available; `:q` closes the current split
-when multiple file windows are open.
+and Esc to cancel. Buffer and workspace lists mark the current entry with `*`
+and unsaved edits with `+`. The workspace bar brackets the active workspace;
+`+` means at least one buffer in that workspace has unsaved edits. Relative
+file paths use the current project directory.
+
+Choosing a different project reuses its existing workspace or creates a
+separate one, preserving the previous project's buffers and window layout.
+A new empty workspace can be reused for the selected project. Workspaces
+keep their names, buffers, file-window layout, and project directory for the
+current session. Closing a split keeps its buffer available. Closing the last
+buffer leaves an empty buffer in the same workspace. Modified buffers must
+be saved before closing, or explicitly discarded with `:bd!`. `:q` closes
+the current split when multiple file windows are open.
+
+Version 1.0 changes: `SPC b` is now a buffer-command prefix; use `SPC b n`
+for the previous next-buffer action. `:bd` no longer quits when closing the
+last buffer. Project selection now switches workspaces. Session persistence
+is not implemented.
 
 ## Shell commands
 

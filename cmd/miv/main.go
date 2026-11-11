@@ -232,25 +232,17 @@ func (v *view) draw() {
 			height, _, _ = terminalGeometry(w, h)
 		}
 	}
-	// Waybar layout: buffer tags on the left, file title centered, position on the right.
+	// Workspaces are the only tabs; files occupy the current window.
 	fill(s, 0, w, bar)
 	position := fmt.Sprintf(" %d:%d ", row+1, col+1)
 	right := max(0, w-runewidth.StringWidth(position))
-	x := put(s, 0, 0, right, fmt.Sprintf(" W%d ", e.Workspace), accent)
-	for i, buf := range e.Buffers {
-		label := fmt.Sprintf(" %d ", i+1)
-		if buf.Dirty() {
-			label = fmt.Sprintf(" %d+ ", i+1)
-		}
-		style := inactive
-		if i == e.Active {
-			style = accent
-		}
-		x = put(s, x, 0, right, label, style)
-	}
+	x := v.drawWorkspaceBar(right)
 	name := filepath.Base(b.Path)
 	if b.Path == "" {
 		name = "[new]"
+	}
+	if b.Dirty() {
+		name += " +"
 	}
 	titleX := max(x+1, (w-runewidth.StringWidth(name))/2)
 	if titleX < right-1 {
@@ -277,6 +269,8 @@ func (v *view) draw() {
 			kind = "Workspaces"
 		} else if e.PickingLocations {
 			kind = "Locations"
+		} else if e.PickingBuffers {
+			kind = "Buffers"
 		}
 		bottom = kind + " > " + e.Prompt
 		fill(s, 0, w, bar)
@@ -306,6 +300,9 @@ func (v *view) draw() {
 	}
 	if e.Mode == editor.Info {
 		v.drawInfo(w, h)
+	}
+	if v.terminal == nil || !v.terminal.focused {
+		v.drawKeyHints(w, h)
 	}
 	s.Show()
 }

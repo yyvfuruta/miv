@@ -10,6 +10,47 @@ type workspace struct {
 	active  int
 	root    string
 	windows windowState
+	name    string
+}
+
+type WorkspaceView struct {
+	ID            int
+	Name          string
+	Active, Dirty bool
+}
+
+func (e *Editor) WorkspaceList() []WorkspaceView {
+	var result []WorkspaceView
+	for id := 1; id <= 9; id++ {
+		w, exists := e.workspaceState(id)
+		if !exists {
+			continue
+		}
+		view := WorkspaceView{ID: id, Name: w.name, Active: id == e.Workspace}
+		for _, b := range w.buffers {
+			view.Dirty = view.Dirty || b.Dirty()
+		}
+		result = append(result, view)
+	}
+	return result
+}
+
+func (e *Editor) workspaceState(id int) (workspace, bool) {
+	if id == e.Workspace {
+		return workspace{buffers: e.Buffers, active: e.Active, root: e.Root, windows: e.windows, name: e.WorkspaceName}, true
+	}
+	w, exists := e.workspaces[id]
+	return w, exists
+}
+
+func (e *Editor) CycleWorkspace(direction int) {
+	list := e.WorkspaceList()
+	for i, w := range list {
+		if w.Active {
+			e.SwitchWorkspace(list[(i+direction+len(list))%len(list)].ID)
+			return
+		}
+	}
 }
 
 func (w workspace) hasContent() bool {
@@ -28,21 +69,23 @@ func (e *Editor) SwitchWorkspace(id int) {
 	}
 	e.Buffer().End()
 	e.syncWindow()
-	e.workspaces[e.Workspace] = workspace{buffers: e.Buffers, active: e.Active, root: e.Root, windows: e.windows}
+	e.workspaces[e.Workspace], _ = e.workspaceState(e.Workspace)
 	next, ok := e.workspaces[id]
 	if !ok {
 		next = workspace{buffers: []*Buffer{NewBuffer()}, root: e.Root}
 	}
 	e.Buffers, e.Active, e.Root = next.buffers, next.active, next.root
 	e.windows = next.windows
+	e.WorkspaceName = next.name
 	if e.windows.active != nil {
 		e.activateWindow(e.windows.active)
 	}
-	e.Workspace = id
+	e.previousWorkspace, e.Workspace = e.Workspace, id
 	e.Mode, e.Prompt = Normal, ""
 	e.PickingProjects, e.PickingWorkspaces = false, false
 	e.workspaceEntries = nil
 	e.PickingLocations, e.locationEntries = false, nil
+	e.PickingBuffers, e.bufferEntries = false, nil
 	e.desiredCol = -1
 	e.reset()
 }
@@ -67,14 +110,14 @@ func (e *Editor) projectPath(path string) string {
 // StartWorkspaces lists only workspaces created in this session. Read the active
 // workspace directly: its saved entry may still refer to an older buffer list.
 func (e *Editor) StartWorkspaces() {
+	e.PickingBuffers, e.bufferEntries = false, nil
 	e.PickingLocations, e.locationEntries = false, nil
 	e.Files = nil
 	e.workspaceEntries = make(map[string]int)
 	for id := 1; id <= 9; id++ {
-		w, exists := e.workspaces[id]
+		w, exists := e.workspaceState(id)
 		mark := ""
 		if id == e.Workspace {
-			w = workspace{buffers: e.Buffers, active: e.Active, root: e.Root, windows: e.windows}
 			exists, mark = true, "*"
 		}
 		if !exists {
@@ -95,6 +138,9 @@ func (e *Editor) StartWorkspaces() {
 			unit = "buffer"
 		}
 		entry := fmt.Sprintf("W%d %-2s | %d %s | %s", id, mark, len(w.buffers), unit, root)
+		if w.name != "" {
+			entry += " | " + w.name
+		}
 		e.Files = append(e.Files, entry)
 		e.workspaceEntries[entry] = id
 	}

@@ -72,7 +72,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "smoke:", err)
 		os.Exit(1)
 	}
-	fmt.Println("PTY smoke passed: editing, paste, embedded terminal, shell filters, Ctrl-C, directory picker, workspaces, terminal restoration")
+	fmt.Println("PTY smoke passed: editing, key hints, buffer switching, paste, embedded terminal, shell filters, Ctrl-C, directory picker, workspaces, terminal restoration")
 }
 
 func openPTY() (*os.File, *os.File, error) {
@@ -207,6 +207,9 @@ func run() error {
 	if err = os.WriteFile(path, nil, 0644); err != nil {
 		return err
 	}
+	if err = os.WriteFile(filepath.Join(directory, "second.txt"), []byte("second file"), 0644); err != nil {
+		return err
+	}
 	master, slave, err := openPTY()
 	if err != nil {
 		return err
@@ -288,6 +291,27 @@ func run() error {
 	if err = t.editorReady(); err != nil {
 		return err
 	}
+	if err = t.send(" "); err != nil {
+		return err
+	}
+	if err = t.screenContains("SPC", "Workspaces", "Buffers"); err != nil {
+		return err
+	}
+	if err = t.send("b"); err != nil {
+		return err
+	}
+	if err = t.screenContains("SPC b", "Switch buffer", "Close buffer"); err != nil {
+		return err
+	}
+	if err = t.send("b"); err != nil {
+		return err
+	}
+	if err = t.screenContains("Buffers (1)", "smoke.txt"); err != nil {
+		return err
+	}
+	if err = t.send("\r"); err != nil {
+		return err
+	}
 	if err = t.send("iHello, café!"); err != nil {
 		return err
 	}
@@ -304,6 +328,25 @@ func run() error {
 		return err
 	}
 	if err = t.editorReady(); err != nil {
+		return err
+	}
+	// Find changes the current window; switching back must preserve unsaved edits.
+	if err = t.send(" pfsecond.txt\r"); err != nil {
+		return err
+	}
+	if err = t.screenContains("second file", "second.txt"); err != nil {
+		return err
+	}
+	if err = t.send(" bb"); err != nil {
+		return err
+	}
+	if err = t.screenContains("Buffers (2)", "smoke.txt"); err != nil {
+		return err
+	}
+	if err = t.send("smoke.txt\r"); err != nil {
+		return err
+	}
+	if err = t.screenContains("Hello, café!", "pasted without indentation"); err != nil {
 		return err
 	}
 	if err = t.shell("printf 'hello\\n' | tr a-z A-Z > shell-output.txt", "", false); err != nil {
@@ -454,7 +497,7 @@ func run() error {
 	if err = t.send(" \tn"); err != nil {
 		return err
 	}
-	if err = t.screenContains("W2"); err != nil {
+	if err = t.screenContains("[W2]"); err != nil {
 		return err
 	}
 	if err = t.send("iworkspace two"); err != nil {
@@ -478,13 +521,13 @@ func run() error {
 	if err = t.send(" \tn"); err != nil {
 		return err
 	}
-	if err = t.screenContains("W3"); err != nil {
+	if err = t.screenContains("[W3]"); err != nil {
 		return err
 	}
 	if err = t.send(" \td"); err != nil {
 		return err
 	}
-	if err = t.screenContains("W1"); err != nil {
+	if err = t.screenContains("[W1+]"); err != nil {
 		return err
 	}
 	if err = t.send(" fs"); err != nil {

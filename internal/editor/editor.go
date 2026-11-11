@@ -64,6 +64,10 @@ type Editor struct {
 	PickingLocations            bool
 	locationEntries             map[string]languageLocation
 	jumps                       []languageJump
+	PickingBuffers              bool
+	bufferEntries               map[string]*Buffer
+	WorkspaceName               string
+	previousWorkspace           int
 }
 
 func New(paths []string) (*Editor, error) {
@@ -371,22 +375,38 @@ func (e *Editor) pendingKey(key string) {
 			e.reset()
 			return
 		}
-		if key == "f" || key == "p" || key == "w" || key == "<Tab>" {
+		if key == "f" || key == "p" || key == "w" || key == "b" || key == "<Tab>" {
 			e.pending = " " + key
 			return
 		}
 		if key == "s" {
 			e.Execute("w")
 		}
-		if key == "b" {
-			e.nextBuffer(1)
+		if key == "," {
+			e.StartBuffers()
+		}
+		if key == "." || key == " " {
+			e.StartPicker()
 		}
 		e.reset()
 		return
 	}
-	if pending == " f" || pending == " p" || pending == " w" || pending == " <Tab>" {
+	if pending == " f" || pending == " p" || pending == " w" || pending == " b" || pending == " <Tab>" {
 		e.reset()
 		switch pending {
+		case " b":
+			switch key {
+			case "b":
+				e.StartBuffers()
+			case "n", "]":
+				e.nextBuffer(1)
+			case "p", "[":
+				e.nextBuffer(-1)
+			case "d", "k":
+				e.deleteBuffer(false)
+			case "s":
+				e.Execute("w")
+			}
 		case " f":
 			if key == "s" {
 				e.Execute("w")
@@ -415,10 +435,27 @@ func (e *Editor) pendingKey(key string) {
 			if key == "v" {
 				e.SplitWindow(true)
 			}
-			if key == "q" && !e.CloseWindow() {
+			if (key == "q" || key == "d") && !e.CloseWindow() {
 				e.Message = "Cannot close the last file window"
 			}
 		case " <Tab>":
+			switch key {
+			case ".", "<Tab>":
+				e.StartWorkspaces()
+			case "[":
+				e.CycleWorkspace(-1)
+			case "]":
+				e.CycleWorkspace(1)
+			case "`":
+				if e.workspaceExists(e.previousWorkspace) {
+					e.SwitchWorkspace(e.previousWorkspace)
+				}
+			case "r":
+				e.Mode, e.Prompt = Command, "wsrename "
+			case "0":
+				list := e.WorkspaceList()
+				e.SwitchWorkspace(list[len(list)-1].ID)
+			}
 			if key == "n" {
 				e.CreateWorkspace(0)
 			}
@@ -1027,8 +1064,14 @@ func (e *Editor) openPath(path string) {
 		e.Message = err.Error()
 		return
 	}
-	e.Buffers = append(e.Buffers, b)
-	e.Active = len(e.Buffers) - 1
+	// A new file replaces the initial empty buffer in a single file window.
+	if len(e.Buffers) == 1 && e.Buffer().Path == "" && len(e.Buffer().Text) == 0 &&
+		(e.windows.root == nil || e.windows.root.window != nil) {
+		e.Buffers[0] = b
+	} else {
+		e.Buffers = append(e.Buffers, b)
+		e.Active = len(e.Buffers) - 1
+	}
 	e.desiredCol = -1
 }
 func (e *Editor) Execute(cmd string) {
@@ -1092,7 +1135,7 @@ func (e *Editor) Execute(cmd string) {
 			e.closeBuffer(force)
 		}
 	case "bd":
-		e.closeBuffer(force)
+		e.deleteBuffer(force)
 	case "qa", "qall":
 		for _, b := range e.allBuffers() {
 			if b.Dirty() && !force {
@@ -1145,6 +1188,15 @@ func (e *Editor) Execute(cmd string) {
 		}
 	case "workspaces", "ws":
 		e.StartWorkspaces()
+	case "wsrename":
+		if arg == "" {
+			e.Message = "Use :wsrename name"
+		} else {
+			e.WorkspaceName = arg
+			e.Message = "Workspace renamed: " + arg
+		}
+	case "bufferlist":
+		e.StartBuffers()
 	case "projects":
 		e.StartProjects()
 	case "files":

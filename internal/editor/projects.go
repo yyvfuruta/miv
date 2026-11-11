@@ -27,6 +27,7 @@ func gitRoot(path string) string {
 // Discover nearby Git repositories without recursively scanning the home directory.
 // One level of owner directories also covers layouts such as github.com/owner/repo.
 func (e *Editor) StartProjects() {
+	e.PickingBuffers, e.bufferEntries = false, nil
 	e.PickingLocations, e.locationEntries = false, nil
 	roots := make(map[string]bool)
 	add := func(path string) {
@@ -91,4 +92,28 @@ func (e *Editor) StartProjects() {
 	e.PickingProjects, e.PickingWorkspaces = true, false
 	e.workspaceEntries = nil
 	e.filterFiles()
+}
+
+// Project selection reuses the project's workspace or starts a separate one.
+func (e *Editor) switchProject(root string) {
+	for _, view := range e.WorkspaceList() {
+		w, _ := e.workspaceState(view.ID)
+		path, err := filepath.Abs(w.root)
+		if err == nil && path == root && w.hasContent() {
+			e.SwitchWorkspace(view.ID)
+			e.StartPicker()
+			return
+		}
+	}
+	current, _ := e.workspaceState(e.Workspace)
+	if current.hasContent() {
+		previous := e.Workspace
+		e.CreateWorkspace(0)
+		if e.Workspace == previous {
+			return
+		}
+	}
+	e.Root = root
+	e.WorkspaceName = filepath.Base(root)
+	e.StartPicker()
 }

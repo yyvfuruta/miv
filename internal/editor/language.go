@@ -67,6 +67,7 @@ func (e *Editor) ShowLanguageResult(action string, result lsp.Result) {
 		return
 	}
 	e.PickingProjects, e.PickingWorkspaces, e.PickingLocations = false, false, true
+	e.PickingBuffers, e.bufferEntries = false, nil
 	e.workspaceEntries = nil
 	e.locationEntries = make(map[string]languageLocation)
 	e.Files = nil

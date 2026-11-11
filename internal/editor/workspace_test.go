@@ -67,7 +67,7 @@ func TestWorkspaceHiddenChangesAndActiveBuffer(t *testing.T) {
 	if e.Active != 1 || e.Buffer().Cursor != 3 {
 		t.Fatal("active buffer or cursor lost")
 	}
-	workspaceKeys(e, "0")
+	workspaceKeys(e, "x")
 	if e.Workspace != 1 {
 		t.Fatal("invalid workspace accepted")
 	}
@@ -145,7 +145,7 @@ func TestDoomSaveAndProjectPicker(t *testing.T) {
 		t.Fatal("leader find file failed")
 	}
 	e.Handle("<Esc>")
-	e.Active = 0
+	e.SwitchWorkspace(1)
 	assertText(t, e, "edited")
 }
 
