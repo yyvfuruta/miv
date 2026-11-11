@@ -43,6 +43,7 @@ func (e *Editor) promptKey(key string) {
 		e.Prompt = ""
 		e.PickingProjects, e.PickingWorkspaces = false, false
 		e.workspaceEntries = nil
+		e.PickingLocations, e.locationEntries = false, nil
 		e.reset()
 	case "<Enter>":
 		mode, prompt := e.Mode, e.Prompt
@@ -60,7 +61,11 @@ func (e *Editor) promptKey(key string) {
 			e.find(e.search, e.searchDir)
 		case Picker:
 			if len(e.Matches) > 0 {
-				if e.PickingWorkspaces {
+				if e.PickingLocations {
+					location := e.locationEntries[e.Matches[e.PickIndex]]
+					e.PickingLocations, e.locationEntries = false, nil
+					e.goToLocation(location)
+				} else if e.PickingWorkspaces {
 					id := e.workspaceEntries[e.Matches[e.PickIndex]]
 					e.PickingWorkspaces = false
 					e.workspaceEntries = nil
@@ -75,6 +80,7 @@ func (e *Editor) promptKey(key string) {
 			if e.Mode != Picker {
 				e.PickingProjects, e.PickingWorkspaces = false, false
 				e.workspaceEntries = nil
+				e.PickingLocations, e.locationEntries = false, nil
 			}
 		}
 	case "<Backspace>":
@@ -103,6 +109,7 @@ func (e *Editor) promptKey(key string) {
 	}
 }
 func (e *Editor) StartPicker() {
+	e.PickingLocations, e.locationEntries = false, nil
 	e.PickingProjects, e.PickingWorkspaces = false, false
 	e.workspaceEntries = nil
 	e.Files, e.Matches = nil, nil

@@ -42,6 +42,7 @@ func (e *Editor) SwitchWorkspace(id int) {
 	e.Mode, e.Prompt = Normal, ""
 	e.PickingProjects, e.PickingWorkspaces = false, false
 	e.workspaceEntries = nil
+	e.PickingLocations, e.locationEntries = false, nil
 	e.desiredCol = -1
 	e.reset()
 }
@@ -66,6 +67,7 @@ func (e *Editor) projectPath(path string) string {
 // StartWorkspaces lists only workspaces created in this session. Read the active
 // workspace directly: its saved entry may still refer to an older buffer list.
 func (e *Editor) StartWorkspaces() {
+	e.PickingLocations, e.locationEntries = false, nil
 	e.Files = nil
 	e.workspaceEntries = make(map[string]int)
 	for id := 1; id <= 9; id++ {

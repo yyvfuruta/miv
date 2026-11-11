@@ -19,10 +19,11 @@ const (
 	Command
 	Search
 	Picker
+	Info
 )
 
 func (m Mode) String() string {
-	return [...]string{"NORMAL", "INSERT", "VISUAL", "VISUAL LINE", "COMMAND", "SEARCH", "FILES"}[m]
+	return [...]string{"NORMAL", "INSERT", "VISUAL", "VISUAL LINE", "COMMAND", "SEARCH", "FILES", "INFO"}[m]
 }
 
 type Editor struct {
@@ -57,6 +58,12 @@ type Editor struct {
 	workspaceEntries            map[string]int
 	windows                     windowState
 	NavigateWindow              func(string)
+	LanguageAction              func(string)
+	InfoTitle, InfoText         string
+	InfoScroll                  int
+	PickingLocations            bool
+	locationEntries             map[string]languageLocation
+	jumps                       []languageJump
 }
 
 func New(paths []string) (*Editor, error) {
@@ -122,6 +129,10 @@ func (e *Editor) Handle(key string) {
 }
 func (e *Editor) handle(key string) {
 	b := e.Buffer()
+	if e.Mode == Info {
+		e.infoKey(key)
+		return
+	}
 	if e.Mode == Command || e.Mode == Search || e.Mode == Picker {
 		e.promptKey(key)
 		return
@@ -136,6 +147,11 @@ func (e *Editor) handle(key string) {
 	}
 	if e.Mode == Insert {
 		e.insertKey(key)
+		return
+	}
+	if e.Mode == Normal && e.pending == "" && key == "<C-o>" {
+		e.jumpBack()
+		e.reset()
 		return
 	}
 	if key == "<C-r>" {
@@ -218,6 +234,8 @@ func (e *Editor) handle(key string) {
 	e.count = ""
 	e.desiredCol = -1
 	switch key {
+	case "K":
+		e.requestLanguage("hover")
 	case "i":
 		e.Mode = Insert
 	case "a":
@@ -415,6 +433,20 @@ func (e *Editor) pendingKey(key string) {
 		return
 	}
 	if pending == "g" {
+		if e.Mode == Normal {
+			switch key {
+			case "d":
+				e.requestLanguage("definition")
+			case "i":
+				e.requestLanguage("implementation")
+			case "r":
+				e.requestLanguage("references")
+			case "y":
+				e.requestLanguage("typeDefinition")
+			case "s":
+				e.requestLanguage("signatureHelp")
+			}
+		}
 		if (key == "q" || key == "w") && (e.Mode == Visual || e.Mode == VisualLine) {
 			e.formatSelection(key == "w")
 		}
@@ -1021,6 +1053,8 @@ func (e *Editor) Execute(cmd string) {
 	name = strings.TrimSuffix(name, "!")
 	b := e.Buffer()
 	switch name {
+	case "signature":
+		e.requestLanguage("signatureHelp")
 	case "split", "sp", "vsplit", "vs":
 		if e.SplitWindow(name == "vsplit" || name == "vs") && arg != "" {
 			e.openPath(arg)
@@ -1116,7 +1150,7 @@ func (e *Editor) Execute(cmd string) {
 	case "files":
 		e.StartPicker()
 	case "help", "h":
-		e.Message = "SPC f s:save  p f:files  p p:projects  TAB 1-9:workspace  :workspaces :!cmd :term"
+		e.Message = "gd:definition  K:docs  gr:references  Ctrl-o:back  SPC f s:save  p f:files  :term"
 	default:
 		if n, err := strconv.Atoi(name); err == nil && n > 0 {
 			b.Cursor = b.Offset(n-1, 0)

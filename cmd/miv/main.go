@@ -65,6 +65,9 @@ func run() error {
 	}
 	e.CloseTerminal = v.closeTerminal
 	e.NavigateWindow = v.focusWindow
+	language := newLanguageController(e, func() { _ = screen.PostEvent(tcell.NewEventInterrupt(nil)) })
+	defer language.close()
+	e.LanguageAction = language.request
 	e.RunShell = func(command string, interactive bool) error {
 		if interactive {
 			return v.openTerminal(command, e.Root)
@@ -86,9 +89,13 @@ func run() error {
 			break
 		}
 		switch ev := event.(type) {
+		case *tcell.EventInterrupt:
+			// Process queued keys before replies so input can cancel a request.
+			language.apply()
 		case *tcell.EventResize:
 			screen.Sync()
 		case *tcell.EventPaste:
+			language.cancelRequest()
 			pasting = ev.Start()
 			if pasting {
 				paste.Reset()
@@ -102,6 +109,7 @@ func run() error {
 				}
 			}
 		case *tcell.EventKey:
+			language.cancelRequest()
 			if v.terminal != nil && v.terminal.focused && !pasting {
 				if err := v.terminal.key(ev); err != nil {
 					e.Message = err.Error()
@@ -129,6 +137,9 @@ func run() error {
 	return nil
 }
 func keyName(ev *tcell.EventKey) string {
+	if ev.Key() == tcell.KeyCtrlO {
+		return "<C-o>"
+	}
 	if ev.Key() == tcell.KeyCtrlC {
 		return "<Esc>"
 	}
@@ -264,6 +275,8 @@ func (v *view) draw() {
 			kind = "Projects"
 		} else if e.PickingWorkspaces {
 			kind = "Workspaces"
+		} else if e.PickingLocations {
+			kind = "Locations"
 		}
 		bottom = kind + " > " + e.Prompt
 		fill(s, 0, w, bar)
@@ -290,6 +303,9 @@ func (v *view) draw() {
 
 	if v.terminal != nil {
 		v.drawTerminal(w, h)
+	}
+	if e.Mode == editor.Info {
+		v.drawInfo(w, h)
 	}
 	s.Show()
 }

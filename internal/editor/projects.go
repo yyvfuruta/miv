@@ -27,6 +27,7 @@ func gitRoot(path string) string {
 // Discover nearby Git repositories without recursively scanning the home directory.
 // One level of owner directories also covers layouts such as github.com/owner/repo.
 func (e *Editor) StartProjects() {
+	e.PickingLocations, e.locationEntries = false, nil
 	roots := make(map[string]bool)
 	add := func(path string) {
 		if root := gitRoot(path); root != "" {
