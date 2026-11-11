@@ -34,9 +34,9 @@ func TestWorkspaceSwitchAndQuit(t *testing.T) {
 	if e.Quit {
 		t.Fatal("quit discarded dirty workspaces")
 	}
-	e.Execute("q!")
+	e.Execute("wsdelete! 1")
 	if e.Quit || e.Workspace != 2 || e.Buffer() != second || e.Root != root2 {
-		t.Fatal("closing a workspace discarded another workspace")
+		t.Fatal("deleting a workspace discarded another workspace")
 	}
 	assertText(t, e, "two")
 	e.Execute("qa!")

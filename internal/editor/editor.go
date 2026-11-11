@@ -1131,6 +1131,10 @@ func (e *Editor) Execute(cmd string) {
 			}
 		}
 	case "q", "quit":
+		if force {
+			e.Quit = true
+			return
+		}
 		if !e.CloseWindow() {
 			e.closeBuffer(force)
 		}

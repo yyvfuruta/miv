@@ -154,6 +154,10 @@ buffer leaves an empty buffer in the same workspace. Modified buffers must
 be saved before closing, or explicitly discarded with `:bd!`. `:q` closes
 the current split when multiple file windows are open.
 
+`:q!` (or `:quit!`) exits the entire editor immediately, discarding unsaved
+changes in every buffer and workspace. Use `SPC w d` or `:close` to close
+only a window, or `:bd!` to discard only the current buffer.
+
 Version 1.0 changes: `SPC b` is now a buffer-command prefix; use `SPC b n`
 for the previous next-buffer action. `:bd` no longer quits when closing the
 last buffer. Project selection now switches workspaces. Session persistence

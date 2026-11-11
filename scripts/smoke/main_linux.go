@@ -542,7 +542,14 @@ func run() error {
 	if err = t.screenContains("Unsaved changes; use :qa!"); err != nil {
 		return err
 	}
-	if err = t.send(":qa!\r"); err != nil {
+	if err = t.send(" wv"); err != nil {
+		return err
+	}
+	if err = t.screenContains("│"); err != nil {
+		return err
+	}
+	// Forced quit must exit in one command, even with splits and dirty workspaces.
+	if err = t.send(":q!\r"); err != nil {
 		return err
 	}
 	select {
