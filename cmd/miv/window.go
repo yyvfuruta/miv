@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/mattn/go-runewidth"
@@ -79,6 +80,19 @@ func (v *view) drawFileWindow(region editor.WindowView, state *fileViewport, tit
 	text := string(b.Text)
 	state.syntax.update(b.Path, text)
 	lines := strings.Split(text, "\n")
+	rows := b.OrgVisibleRows()
+	visibleRow := sort.SearchInts(rows, row)
+	if visibleRow >= len(rows) {
+		visibleRow = len(rows) - 1
+	}
+	// A second split may retain a cursor inside a subtree folded elsewhere.
+	if rows[visibleRow] != row {
+		visibleRow = max(0, visibleRow-1)
+	}
+	offsets := make([]int, len(lines))
+	for i := 1; i < len(lines); i++ {
+		offsets[i] = offsets[i-1] + len([]rune(lines[i-1])) + 1
+	}
 	width, height := region.Width, region.Height
 	if titled && height > 1 {
 		style := bar
@@ -100,11 +114,11 @@ func (v *view) drawFileWindow(region editor.WindowView, state *fileViewport, tit
 		height--
 	}
 	margin := min(5, height/3)
-	if row < state.top+margin {
-		state.top = max(0, row-margin)
+	if visibleRow < state.top+margin {
+		state.top = max(0, visibleRow-margin)
 	}
-	if row >= state.top+height-margin {
-		state.top = max(0, row-height+margin+1)
+	if visibleRow >= state.top+height-margin {
+		state.top = max(0, visibleRow-height+margin+1)
 	}
 	gutter := len(fmt.Sprint(len(lines))) + 2
 	contentW := max(1, width-gutter)
@@ -128,19 +142,17 @@ func (v *view) drawFileWindow(region editor.WindowView, state *fileViewport, tit
 			end = b.LineEnd(end-1) + 1
 		}
 	}
-	offset := 0
-	for i := 0; i < state.top && i < len(lines); i++ {
-		offset += len([]rune(lines[i])) + 1
-	}
-	tokenIndex := state.syntax.firstSpan(offset)
 	right := region.X + width
 	for localY := 0; localY < height; localY++ {
 		y := region.Y + localY + 1
-		index := state.top + localY
-		if index >= len(lines) {
+		visibleIndex := state.top + localY
+		if visibleIndex >= len(rows) {
 			put(s, region.X, y, right, "~", muted)
 			continue
 		}
+		index := rows[visibleIndex]
+		offset := offsets[index]
+		tokenIndex := state.syntax.firstSpan(offset)
 		put(s, region.X, y, right, fmt.Sprintf("%*d ", gutter-1, index+1), muted)
 		cells := 0
 		runes := []rune(lines[index])
@@ -178,10 +190,13 @@ func (v *view) drawFileWindow(region editor.WindowView, state *fileViewport, tit
 				s.SetContent(x, y, ' ', nil, selected)
 			}
 		}
-		offset += len(runes) + 1
+		if b.OrgFolded(offset) {
+			x := region.X + gutter + cells - state.left
+			put(s, max(region.X+gutter, x), y, right, " …", muted)
+		}
 	}
 	if region.Active {
-		x, y := region.X+gutter+displayCol-state.left, region.Y+row-state.top+1
+		x, y := region.X+gutter+displayCol-state.left, region.Y+visibleRow-state.top+1
 		if x < right && y >= region.Y+1 && y <= region.Y+height {
 			s.ShowCursor(x, y)
 		}

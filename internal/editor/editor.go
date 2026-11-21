@@ -129,6 +129,7 @@ func (e *Editor) Handle(key string) {
 		}
 		b.End()
 	}
+	e.Buffer().revealOrgCursor()
 	e.syncWindow()
 }
 func (e *Editor) handle(key string) {
@@ -156,6 +157,10 @@ func (e *Editor) handle(key string) {
 	if e.Mode == Normal && e.pending == "" && key == "<C-o>" {
 		e.jumpBack()
 		e.reset()
+		return
+	}
+	if e.Mode == Normal && e.pending == "" && b.IsOrg() && (key == "<Tab>" || key == "<S-Tab>") {
+		e.orgAction(key)
 		return
 	}
 	if key == "<C-r>" {
@@ -375,7 +380,7 @@ func (e *Editor) pendingKey(key string) {
 			e.reset()
 			return
 		}
-		if key == "f" || key == "p" || key == "w" || key == "b" || key == "<Tab>" {
+		if key == "f" || key == "p" || key == "w" || key == "b" || key == "m" || key == "<Tab>" {
 			e.pending = " " + key
 			return
 		}
@@ -389,6 +394,11 @@ func (e *Editor) pendingKey(key string) {
 			e.StartPicker()
 		}
 		e.reset()
+		return
+	}
+	if pending == " m" {
+		e.reset()
+		e.orgAction(key)
 		return
 	}
 	if pending == " f" || pending == " p" || pending == " w" || pending == " b" || pending == " <Tab>" {
@@ -605,6 +615,17 @@ func (e *Editor) vertical(n int) {
 	row, col := b.RowCol()
 	if e.desiredCol < 0 {
 		e.desiredCol = col
+	}
+	if b.IsOrg() && len(b.orgFolds) > 0 {
+		rows := b.OrgVisibleRows()
+		index := 0
+		for i, r := range rows {
+			if r <= row {
+				index = i
+			}
+		}
+		b.Cursor = b.Offset(rows[min(max(0, index+n), len(rows)-1)], e.desiredCol)
+		return
 	}
 	b.Cursor = b.Offset(max(0, row+n), e.desiredCol)
 }
@@ -1205,6 +1226,10 @@ func (e *Editor) Execute(cmd string) {
 		e.StartProjects()
 	case "files":
 		e.StartPicker()
+	case "orghelp":
+		e.Mode = Info
+		e.InfoTitle, e.InfoScroll = "Org mode", 0
+		e.InfoText = "Tab: fold subtree; Shift-Tab: fold/unfold all\nSPC m t: cycle TODO/DONE; x: toggle checkbox\nSPC m h/l: promote/demote subtree; i: insert sibling heading\nSPC m [ / ]: previous/next heading\nEdits and undo unfold the buffer. See README for supported features."
 	case "help", "h":
 		e.Message = "gd:definition  K:docs  gr:references  Ctrl-o:back  SPC f s:save  p f:files  :term"
 	default:

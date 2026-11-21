@@ -115,3 +115,54 @@ func TestDrawSyntaxAndSelection(t *testing.T) {
 		t.Fatal("edited identifier retained keyword color")
 	}
 }
+
+func TestOrgHighlightAndFoldedRendering(t *testing.T) {
+	text := "* TODO café\n- [X] done\n[[file:notes.org][notes]]\n#+TITLE: Notes\n* Last"
+	var c syntaxCache
+	c.update("notes.org", text)
+	for _, tt := range []struct {
+		needle string
+		color  int
+	}{{"TODO", 3}, {"café", 4}, {"[X]", 2}, {"[[", 6}, {"#+TITLE", 5}} {
+		offset := utf8.RuneCountInString(text[:strings.Index(text, tt.needle)])
+		if got := foregroundAt(&c, offset); got != tcell.PaletteColor(tt.color) {
+			t.Fatalf("%s color=%v", tt.needle, got)
+		}
+	}
+	screen := tcell.NewSimulationScreen("UTF-8")
+	if err := screen.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Fini()
+	screen.SetSize(80, 24)
+	e, _ := editor.New(nil)
+	b := e.Buffer()
+	b.Path = "notes.org"
+	b.Text = []rune(text)
+	v := view{screen: screen, e: e}
+	e.Handle("<Tab>")
+	v.draw()
+	line := func(y int) string {
+		var out strings.Builder
+		for x := 0; x < 80; x++ {
+			r, _, _, _ := screen.GetContent(x, y)
+			out.WriteRune(r)
+		}
+		return out.String()
+	}
+	if !strings.Contains(line(1), "…") || !strings.Contains(line(2), "* Last") {
+		t.Fatalf("folded screen: %q / %q", line(1), line(2))
+	}
+	e.Handle("j")
+	v.draw()
+	_, y, _ := screen.GetCursor()
+	if y != 2 {
+		t.Fatalf("folded cursor y=%d", y)
+	}
+	e.Handle("k")
+	e.Handle("<Tab>")
+	v.draw()
+	if !strings.Contains(line(2), "[X] done") {
+		t.Fatal("unfold did not restore body")
+	}
+}

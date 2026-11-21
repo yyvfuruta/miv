@@ -72,7 +72,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "smoke:", err)
 		os.Exit(1)
 	}
-	fmt.Println("PTY smoke passed: editing, key hints, buffer switching, paste, embedded terminal, shell filters, Ctrl-C, directory picker, workspaces, terminal restoration")
+	fmt.Println("PTY smoke passed: editing, Org mode, key hints, buffer switching, paste, embedded terminal, shell filters, Ctrl-C, directory picker, workspaces, terminal restoration")
 }
 
 func openPTY() (*os.File, *os.File, error) {
@@ -546,6 +546,46 @@ func run() error {
 		return err
 	}
 	if err = t.screenContains("│"); err != nil {
+		return err
+	}
+	// Org folding changes the view while task edits persist as ordinary text.
+	if err = t.send(":e notes.org\r"); err != nil {
+		return err
+	}
+	if err = t.screenContains("notes.org"); err != nil {
+		return err
+	}
+	if err = t.send("i* Task\r- [ ] item\r** Child\rchild body\r* Last"); err != nil {
+		return err
+	}
+	if err = t.screenContains(" INSERT ", "child body"); err != nil {
+		return err
+	}
+	if err = t.send("\x1b"); err != nil {
+		return err
+	}
+	if err = t.editorReady(); err != nil {
+		return err
+	}
+	if err = t.send("gg mt\t"); err != nil {
+		return err
+	}
+	if err = t.until("folded Org subtree", func() bool {
+		text := t.output.screen.String()
+		return strings.Contains(text, "* TODO Task") && strings.Contains(text, "…") && !strings.Contains(text, "child body")
+	}); err != nil {
+		return err
+	}
+	if err = t.send("j"); err != nil {
+		return err
+	}
+	if err = t.screenContains(" 5:1 "); err != nil {
+		return err
+	}
+	if err = t.send("k\tj mx:w\r"); err != nil {
+		return err
+	}
+	if err = t.file(filepath.Join(directory, "notes.org"), "* TODO Task\n- [X] item\n** Child\nchild body\n* Last"); err != nil {
 		return err
 	}
 	// Forced quit must exit in one command, even with splits and dirty workspaces.

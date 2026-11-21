@@ -5,7 +5,7 @@ import "testing"
 func TestLeaderHintsFollowPrefixesAndCancel(t *testing.T) {
 	for _, tt := range []struct{ key, prefix, option string }{
 		{"", "SPC", "Workspaces"}, {"b", "SPC b", "Switch buffer"}, {"w", "SPC w", "Split right"},
-		{"f", "SPC f", "Find file"}, {"p", "SPC p", "Switch project"}, {"<Tab>", "SPC TAB", "Rename workspace"},
+		{"m", "SPC m", "Cycle TODO"}, {"f", "SPC f", "Find file"}, {"p", "SPC p", "Switch project"}, {"<Tab>", "SPC TAB", "Rename workspace"},
 	} {
 		e := fixture("unchanged")
 		keys(e, " ")

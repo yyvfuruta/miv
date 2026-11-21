@@ -48,6 +48,38 @@ first line's indentation. Words are kept intact. `gw` formats the same way
 and keeps the cursor on its original text; `gq` moves it to the first nonblank
 character of the last formatted line. Use `u` to undo the entire formatting.
 
+## Org mode
+
+Open an `.org` file to use the built-in outline and task editing commands.
+The `SPC m` menu follows [Doom's Org localleader conventions](https://github.com/doomemacs/modules/blob/main/modules/lang/org/config.el)
+for TODO and checkbox actions. Press `:orghelp` for a quick reference.
+
+| Action | Normal-mode keys |
+| --- | --- |
+| Fold / unfold the current heading's subtree | `Tab` or `SPC m Tab` |
+| Fold all top-level subtrees / unfold all | `Shift-Tab` |
+| Cycle no state → TODO → DONE → no state | `SPC m t` |
+| Toggle a list checkbox | `SPC m x` |
+| Promote / demote the current subtree | `SPC m h` / `SPC m l` |
+| Insert a sibling heading after the current subtree | `SPC m i` |
+| Previous / next heading | `SPC m [` / `SPC m ]` |
+
+Headings, TODO/DONE states, metadata, comments, links, and checkboxes have
+syntax colors. Literal blocks are excluded from the outline. Heading commands
+also work from the heading's body. Insertion enters insert mode. Promotion and
+demotion include child headings and form one undo step. Top-level headings
+cannot be promoted further. Checkboxes support unordered and numbered lists;
+`[ ]` and `[-]` become `[X]`, and `[X]` becomes `[ ]`.
+
+Folded headings show `…`; vertical movement skips hidden lines, while search
+and heading navigation reveal their destination. Folding is shared by splits
+of a buffer and never changes the saved text. Editing or undoing unfolds the
+buffer. Fold state lasts for the current session.
+
+This is a focused subset of Org mode. Agenda, capture templates, custom TODO
+sequences, statistics cookies, table alignment, export, link opening, and Babel
+execution are not implemented. Org files remain ordinary editable text.
+
 ## Code navigation
 
 Language commands use a language server installed separately and available on

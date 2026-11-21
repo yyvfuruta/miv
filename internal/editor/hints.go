@@ -15,8 +15,10 @@ func (e *Editor) KeyHints() (string, []KeyHint) {
 	switch e.pending {
 	case " ":
 		hints = []KeyHint{{"f", "Files"}, {"p", "Projects"}, {"b", "Buffers"}, {"w", "Windows"},
-			{"TAB", "Workspaces"}, {".", "Find file"}, {"SPC", "Find project file"}, {",", "Switch buffer"},
+			{"m", "Org mode"}, {"TAB", "Workspaces"}, {".", "Find file"}, {"SPC", "Find project file"}, {",", "Switch buffer"},
 			{"s", "Save file"}, {"0-9", "Switch buffer"}}
+	case " m":
+		hints = []KeyHint{{"t", "Cycle TODO"}, {"x", "Toggle checkbox"}, {"h / l", "Promote / demote subtree"}, {"i", "Insert heading"}, {"[ / ]", "Previous / next heading"}, {"TAB", "Fold subtree"}}
 	case " f":
 		hints = []KeyHint{{"f", "Find file"}, {"s", "Save file"}}
 	case " p":

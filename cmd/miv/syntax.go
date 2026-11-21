@@ -2,12 +2,15 @@ package main
 
 import (
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/gdamore/tcell/v2"
+	"github.com/yyvfuruta/vim/internal/editor"
 )
 
 // Keep full-document lexing bounded. Larger files remain editable without colors.
@@ -29,6 +32,10 @@ func (c *syntaxCache) update(path, text string) {
 	}
 	c.path, c.text, c.spans = path, text, nil
 	if path == "" || len(text) > maxHighlightBytes {
+		return
+	}
+	if strings.EqualFold(filepath.Ext(path), ".org") {
+		c.highlightOrg()
 		return
 	}
 	lexer := lexers.Match(filepath.Base(path))
@@ -91,4 +98,62 @@ func (c *syntaxCache) styleAt(offset int, index *int) tcell.Style {
 		return base.Foreground(c.spans[*index].color)
 	}
 	return base
+}
+
+var orgInline = regexp.MustCompile(`\[\[[^\n]+?\]\]|\[[ Xx-]\]`)
+
+func (c *syntaxCache) highlightOrg() {
+	b := &editor.Buffer{Path: c.path, Text: []rune(c.text)}
+	headings := make(map[int]int)
+	for _, h := range b.OrgHeadings() {
+		headings[h.Start] = h.Level
+	}
+	offset := 0
+	add := func(start, end, color int) {
+		if end > start {
+			c.spans = append(c.spans, syntaxSpan{start, end, tcell.PaletteColor(color)})
+		}
+	}
+	for _, line := range strings.Split(c.text, "\n") {
+		runes := []rune(line)
+		if level, ok := headings[offset]; ok {
+			start := level
+			for start < len(runes) && (runes[start] == ' ' || runes[start] == '\t') {
+				start++
+			}
+			end := start
+			for end < len(runes) && runes[end] != ' ' && runes[end] != '\t' {
+				end++
+			}
+			state := string(runes[start:end])
+			if state == "TODO" || state == "DONE" {
+				add(offset, offset+start, 4)
+				color := 3
+				if state == "DONE" {
+					color = 2
+				}
+				add(offset+start, offset+end, color)
+				add(offset+end, offset+len(runes), 4)
+			} else {
+				add(offset, offset+len(runes), 4)
+			}
+		} else if strings.HasPrefix(strings.TrimSpace(line), "#") {
+			color := 8
+			if strings.HasPrefix(strings.TrimSpace(line), "#+") {
+				color = 5
+			}
+			add(offset, offset+len(runes), color)
+		} else {
+			for _, match := range orgInline.FindAllStringIndex(line, -1) {
+				start := offset + utf8.RuneCountInString(line[:match[0]])
+				end := start + utf8.RuneCountInString(line[match[0]:match[1]])
+				color := 6
+				if line[match[0]:match[1]] == "[X]" || line[match[0]:match[1]] == "[x]" {
+					color = 2
+				}
+				add(start, end, color)
+			}
+		}
+		offset += len(runes) + 1
+	}
 }

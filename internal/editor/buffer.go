@@ -28,6 +28,7 @@ type Buffer struct {
 	crlf        bool
 	undo, redo  []snapshot
 	transaction bool
+	orgFolds    map[int]bool
 }
 
 func NewBuffer() *Buffer { return &Buffer{} }
@@ -90,6 +91,7 @@ func (b *Buffer) Replace(start, end int, text string) {
 		return
 	}
 	b.checkpoint()
+	b.orgFolds = nil
 	next := make([]rune, 0, len(b.Text)-(end-start)+len([]rune(text)))
 	next = append(next, b.Text[:start]...)
 	next = append(next, []rune(text)...)
@@ -110,6 +112,7 @@ func (b *Buffer) Undo(redo bool) {
 	s := (*from)[len(*from)-1]
 	*from = (*from)[:len(*from)-1]
 	b.Text, b.Cursor = []rune(s.text), s.cursor
+	b.orgFolds = nil
 }
 func (b *Buffer) LineStart(p int) int {
 	p = min(max(0, p), len(b.Text))
